@@ -1,0 +1,294 @@
+body {
+    margin: 50px;
+    font-family: 'Space Mono', monospace;
+    background-color: #000;
+    color: #fff;
+  }
+ /* Header Section */
+/* Header Section */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  
+  ;
+  color: white;
+  height: 100px; /* Increased height */
+}
+
+.header-image {
+  width: 150px;
+  height: 70px;
+  margin-left: 30px;
+  
+}
+
+.search-bar {
+  padding: 8px;
+  border-radius: 5px;
+  border: none;
+  margin-left: 20px; /* Space between logo and search bar */
+  width: 600px; /* Adjust width as needed */
+  border-color: white;
+  border-style: solid;
+}
+
+.header-right {
+  display: flex;
+  gap: 40px; /* Space between elements */
+}
+
+.header-right span {
+  cursor: pointer;
+  font-size: 24px; /* Increased font size */
+}
+
+/* Main Content */
+.main-content {
+  display: flex;
+  justify-content: space-between; 
+  
+  margin-left: 35px;
+  margin-bottom: 50px;
+  margin-top: 100px;
+  gap: 20px;
+
+}
+
+/* Profile Card */
+.profile-card {
+  width: 400px; /* Increased width */
+  height: 500px; /* Increased height */
+  background: #3405a3;
+  border-radius: 15px;
+  box-shadow: 1px 5px 60px 0px #100a886b;
+  text-align: center;
+  padding: 0px; /* Added padding */
+  margin-top: 19px;
+}
+
+.profile-card .card-border-top {
+  width: 90%;
+  height: 3%;
+  background: #6b64f3;
+  margin: auto; 
+  
+  border-radius: 0px 0px 15px 15px;
+}
+
+.profile-card span {
+  font-weight: 600;
+  color: white;
+  display: block;
+  padding-top: 10px;
+  font-size: 18px; /* Increased font size */
+}
+
+.profile-card .job {
+  font-weight: 500;
+  color: white;
+  display: block;
+  text-align: center;
+  padding-top: 10px; /* Added more space */
+  font-size: 19px; /* Increased font size */
+  margin-top: 20px;
+}
+
+.profile-card .img {
+  width: 100px; /* Increased size */
+  height: 100px; /* Increased size */
+  background: #6b64f3;
+  border-radius: 15px;
+  margin: auto;
+  margin-top: 25px;
+}
+
+.profile-card button {
+  padding: 10px 30px; /* Increased padding */
+  display: block;
+  margin: auto;
+  border-radius: 8px;
+  border: none;
+  margin-top: 50px;
+  background: #6b64f3;
+  color: white;
+  font-weight: 600;
+  font-size: 16px; /* Increased font size */
+}
+
+.profile-card button:hover {
+  background: #534bf3;
+}
+/* Reviews Received Section */
+.reviews-section {
+  width: 1000px; /* Same width as skills card */
+  margin: 40px auto; /* Center the section */
+  text-align: left; /* Left-align content */
+}
+
+.reviews-section h2 {
+  font-family: 'Horizon', sans-serif; /* Horizon font */
+  font-size: 36px; /* Big size */
+  margin-bottom: 20px; /* Space below the heading */
+  color: white; /* White text */
+}
+
+.reviews-card {
+  width: 100%; /* Full width */
+  height: auto; /* Adjust height based on content */
+  background: #07182e; /* Dark background */
+  border-radius: 20px; /* Border radius */
+  padding: 20px; /* Padding inside the container */
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); /* Depth effect */
+}
+
+.review-item {
+  margin-bottom: 20px; /* Space between reviews */
+  padding: 15px; /* Padding inside each review */
+  border-bottom: 1px solid #0a3cff; /* Blue border between reviews */
+}
+
+.review-item:last-child {
+  border-bottom: none; /* Remove border for the last review */
+}
+
+.review-item h3 {
+  font-size: 24px; /* Larger font for reviewer name */
+  color: white; /* White text */
+  margin-bottom: 10px; /* Space below name */
+}
+
+.review-item p {
+  font-size: 18px; /* Font size for review text */
+  color: white; /* White text */
+  margin-bottom: 10px; /* Space below text */
+}
+
+.review-item span {
+  font-size: 20px; /* Font size for stars */
+  color: #ffd700; /* Gold color for stars */
+}
+/* Completion Line */
+.completion-line {
+  width: 80%;
+  margin: 40px auto; /* Added more space */
+  text-align: center;
+}
+
+.progress-bar {
+  height: 10px;
+  background: #6b64f3;
+  border-radius: 5px;
+}
+
+.completion-line span {
+  display: block;
+  margin-top: 10px; /* Added more space */
+  font-size: 18px; /* Increased font size */
+}
+
+/* Edit Modal */
+.edit-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+/* Achievements Section */
+.achievements-section {
+  width: 1000px; /* Very wide container */
+  height: 500px; /* Increased height */
+  border: 2px solid #0a3cff; /* Blue border */
+  border-radius: 20px; /* Border radius */
+  padding: 20px; /* Padding inside the container */
+  background: black; /* Black background */
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.5); /* Depth effect */
+  margin: 20px auto; /* Center the container */
+  color: white; /* White text */
+  text-align: left; /* Left-align all content */
+}
+
+.achievements-section h2 {
+  font-family: 'Horizon', sans-serif; /* Horizon font */
+  font-size: 36px; /* Big size */
+  margin-bottom: 20px; /* Space below the heading */
+  color: white; /* White text */
+}
+
+.achievements-list {
+  font-family: 'Sanz Mono', monospace; /* Sanz Mono font */
+  font-size: 18px; /* Font size for achievements */
+  color: white; /* White text */
+  line-height: 1.8; /* Spacing between lines */
+  padding: 10px; /* Padding inside the list */
+}
+
+.achievements-list ul {
+  list-style-type: none; /* Remove bullet points */
+  padding: 0; /* Remove default padding */
+}
+
+.achievements-list li {
+  margin-bottom: 10px; /* Space between achievements */
+}
+.content h3 {
+  font-size: 40px;
+  margin: 0;
+  color: white;
+}
+
+.content .para {
+  z-index: 1;
+  opacity: 1;
+  font-size: 28px;
+  transition: all 0.48s cubic-bezier(0.23, 1, 0.32, 1);
+  color: white;
+  margin-bottom: 10px;
+}
+
+
+
+/* Financial Container */
+.financial-container {
+  width: 500px; /* Same width as achievements section */
+  height: auto; /* Adjust height based on content */
+  border: 2px solid #0a3cff; /* Blue border */
+  border-radius: 20px; /* Border radius */
+  padding: 20px; /* Padding inside the container */
+  background: black; /* Black background */
+  box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.5); /* Depth effect */
+  margin: 20px auto; /* Center the container */
+  color: white; /* White text */
+  text-align: left; /* Left-align all content */
+}
+
+.financial-container h2 {
+  font-family: 'Horizon', sans-serif; /* Horizon font */
+  font-size: 36px; /* Big size */
+  margin-bottom: 20px; /* Space below the heading */
+  color: white; /* White text */
+}
+
+.financial-item {
+  display: flex;
+  justify-content: space-between; /* Space between label and value */
+  align-items: center;
+  margin-bottom: 15px; /* Space between items */
+  font-family: 'Sanz Mono', monospace; /* Sanz Mono font */
+  font-size: 18px; /* Font size */
+}
+
+.financial-item .label {
+  font-weight: 600; /* Bold label */
+}
+
+.financial-item .value {
+  color: #0a3cff; /* Blue color for values */
+  font-weight: 600; /* Bold value */
+}
