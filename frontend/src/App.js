@@ -11,6 +11,8 @@ import OngoingProject from './components/OngoingProject';
 import PostJob from './components/PostJob'; 
 import ContactUs from './components/ContactUs';
 import AboutUs from './components/AboutUs';
+import Footer from './components/Footer'; 
+
 
 
 
@@ -23,8 +25,9 @@ const App = () => {
             path="/"
             element={
               <>
-                <Header />
+                <Header/>
                 <MainSection/>
+                <Footer></Footer>
               </>
             }
           />

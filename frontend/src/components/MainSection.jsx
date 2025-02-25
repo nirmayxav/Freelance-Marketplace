@@ -15,6 +15,21 @@ const navigate = useNavigate();
 
   return (
     <div className="how-it-works">
+     <div className="main-hero-section">
+  <h1>Meet The Freelance Market</h1>
+  <p className="subtitle">Finding Jobs Made Easy</p>
+  <h2>Scale your professional workforce with freelancers</h2>
+  <div className="search-container">
+    <input 
+      type="text" 
+      placeholder="Search for any service..." 
+      className="search-input"
+    />
+  </div>
+  
+</div>
+     
+
     <div className="how-it-works">
       <h1 className="title">Here's How It Works</h1>
       <div className="steps">
@@ -51,21 +66,28 @@ const navigate = useNavigate();
         <p className="description">
           Post your projects and find the best freelancers tailored to your needs. Whether it's a quick task or a long-term collaboration, our platform ensures you connect with top talent effortlessly.
         </p>
+
+
+
+        <div className="button-container">
         <button className="action-button" onClick={handlemainClick}>
           Start Hiring
-        </button>
+        </button></div>
+
       </div>
-      <img src="/images/image6.png" alt="Section Image2" className="section-image2" />
+      <img src="/images/image23.jpg" alt="Section Image2" className="section-image2" />
     </div>
   
     <div className="post-job-section">
-      <img src="/images/image7.png" alt="Post Job Image" className="section-image" />
+      <img src="/images/image22.jpg" alt="Post Job Image" className="section-image" />
       <div className="text-content">
         <h2 className="section-header">Post Jobs & Hire Top Talent</h2>
         <p className="description">
           Easily post your projects and connect with skilled freelancers. Whether it's a quick task or a long-term collaboration, our platform ensures you find the right talent for your needs.
         </p>
-        <button className="action-button" onClick={handlePostJobClick}>Post a Job</button>
+        <div className="button-container">
+    <button className="action-button" onClick={handlePostJobClick}>Post a Job</button>
+  </div>
       </div>
     </div>
 
@@ -110,16 +132,7 @@ const navigate = useNavigate();
     </div>
 
 
-    <footer className="reveal">
-      <p>© 2025 The Freelance Marketplace</p>
-      <br></br>
-      <br></br>
-      <a href="/about">About </a>
-      <a href="/terms">Terms </a>
-      <a href="/contact">Contact </a>
-      <a href="/privacy">Privacy </a>
-    </footer>
-
+  
 
     </div>
   );
