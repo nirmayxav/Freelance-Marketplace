@@ -1,188 +1,196 @@
-import React, { useState } from 'react';
-import './ProfilePage.css'; // Make sure to create this CSS file with the styles below
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import "./ProfilePage.css"; // Updated CSS for styling
+import { useNavigate } from "react-router-dom";
+
 const ProfilePage = () => {
+  const navigate = useNavigate();
 
-    const navigate = useNavigate();
-  
-    const navigateToHome = () => {
-      navigate('/homes'); // Navigate to the profile page
-    };
-  
-    const navigateToChat = () => {
-      navigate('/chat'); // Navigate to the chat page
-    };
-    const navigateToproj = () => {
-      navigate('/ong-proj'); // Navigate to the chat page
-    };
-    const navigateToPost = () => {
-      navigate('/post'); // Navigate to the chat page
-    };
-    const navigateContact = () => {
-      navigate('/contact'); // Navigate to the chat page
-    };
-    const navigateToAbout = () => {
-      navigate('/abt'); // Navigate to the chat page
-    };
-  // Dummy data from backend (simulated)
-  const [profile, setProfile] = useState({
-    name: 'John Doe',
-    image: 'path_to_user_image.jpg',
-    skills: ['React', 'JavaScript', 'Node.js'],
-    bio: 'I am a passionate developer with experience in building web applications.',
-    rating: 4.5,
-    coins: 100,
-    achievements: [
-      {
-        title: 'Completed 10 Projects',
-        description: 'Successfully delivered 10 projects on time.',
-      },
-      {
-        title: 'Top Rated Developer',
-        description: 'Achieved a 5-star rating on multiple projects.',
-      },
-    ],
-  });
-
+  const [profile, setProfile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [tempProfile, setTempProfile] = useState({ ...profile });
+  const [tempProfile, setTempProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setError("No authentication token found. Please log in.");
+      navigate("/login");
+      return;
+    }
+
+    fetch("http://localhost:5001/api/user/profile", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject("Failed to fetch profile")))
+      .then((data) => {
+        setProfile(data);
+        setTempProfile(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching profile:", err);
+        setError("Failed to load profile");
+        setLoading(false);
+      });
+  }, [navigate]);
 
   const handleEdit = () => {
     if (isEditing) {
-      // Save changes (simulate backend update)
-      setProfile(tempProfile);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Authentication token missing.");
+        return;
+      }
+
+      fetch("http://localhost:5001/api/user/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(tempProfile),
+      })
+        .then((res) => (res.ok ? res.json() : Promise.reject("Failed to update profile")))
+        .then((updatedProfile) => {
+          setProfile(updatedProfile);
+          setIsEditing(false);
+        })
+        .catch((err) => console.error("Error updating profile:", err));
+    } else {
+      setIsEditing(true);
     }
-    setIsEditing(!isEditing);
   };
 
   const handleChange = (field, value) => {
     setTempProfile({ ...tempProfile, [field]: value });
   };
 
-  const handleSkillChange = (index, value) => {
-    const newSkills = [...tempProfile.skills];
-    newSkills[index] = value;
-    setTempProfile({ ...tempProfile, skills: newSkills });
-  };
-
-  const completionPercentage = () => {
-    const fields = [tempProfile.name, tempProfile.bio, ...tempProfile.skills];
-    const filledFields = fields.filter((field) => field.trim() !== '').length;
-    return ((filledFields / fields.length) * 100).toFixed(0);
-
-    
-  };
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p style={{ color: "red" }}>{error}</p>;
 
   return (
     <div className="profile-page">
-      {/* Header Section */}
+      {/* Header */}
       <div className="header">
-        <img src='images/image10.png' alt="User" className="" />
-        
+        <img src="images/image10.png" alt="User" />
         <div className="header-right">
-          <span onClick={navigateToHome}>Home</span>
-          <span onClick={navigateContact}>Contact Us</span>
-          <span onClick={navigateToAbout}>About</span>
-          <span onClick={navigateToChat}>Chat</span>
-          <span onClick={navigateToproj}>Ongoing Projects</span>
-          <span onClick={navigateToPost}>Post a Job</span>
-
-          <span >Settings</span>
+          <span onClick={() => navigate("/homes")}>Home</span>
+          <span onClick={() => navigate("/contact")}>Contact Us</span>
+          <span onClick={() => navigate("/abt")}>About</span>
+          <span onClick={() => navigate("/chat")}>Chat</span>
+          <span onClick={() => navigate("/ong-proj")}>Ongoing Projects</span>
+          <span onClick={() => navigate("/post")}>Post a Job</span>
+          <span>Settings</span>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="main-content">
+      {/* First Row: Profile & Financial Overview */}
+      <div className="row">
         {/* Profile Card */}
         <div className="profile-card">
           <div className="card-border-top"></div>
           <div className="img">
-            <img src={profile.image} alt="User" />
+            <img src={profile.profilePhoto || "default-user.png"} alt="User" />
           </div>
-          <span>{profile.name}</span>
-          <span className="job">{profile.skills.join(', ')}</span>
-          <span>Rating: {profile.rating} ⭐</span>
-          <button onClick={handleEdit}>{isEditing ? 'Save' : 'Edit'}</button>
+          <span>{profile.name || "User"}</span>
+          <span className="job">{profile.skills ? profile.skills.join(", ") : "No skills listed"}</span>
+          <span>Rating: {profile.rating || "N/A"} ⭐</span>
+          <button onClick={handleEdit}>{isEditing ? "Save" : "Edit"}</button>
         </div>
 
-        {/* Achievements Section */}
-        <div className="achievements-section">
-          <h2>Achievements</h2>
-          {profile.achievements.map((achievement, index) => (
-            <div  key={index}>
-              <div className="content">
-                <h3>{achievement.title}</h3>
-                <p className="para">{achievement.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Financial Overview */}
         <div className="financial-container">
-  <h2>Financial Overview</h2>
-  <div className="financial-item">
-    <span className="label">Platform Coins Earned:</span>
-    <span className="value">500 Coins</span>
-  </div>
-  <div className="financial-item">
-    <span className="label">Money Received Till Now:</span>
-    <span className="value">$1,200</span>
-  </div>
-  <div className="financial-item">
-    <span className="label">Money in Escrow System:</span>
-    <span className="value">$300</span>
-  </div>
-</div>
+          <h2>Financial Overview</h2>
+          <div className="financial-item">
+            <span className="label">Platform Coins Earned:</span>
+            <span className="value">{profile.coins || 0} Coins</span>
+          </div>
+          <div className="financial-item">
+            <span className="label">Money Received Till Now:</span>
+            <span className="value">${profile.moneyReceived || 0}</span>
+          </div>
+          <div className="financial-item">
+            <span className="label">Money in Escrow System:</span>
+            <span className="value">${profile.moneyInEscrow || 0}</span>
+          </div>
+        </div>
       </div>
 
-     {/* Reviews Received Section */}
-<div className="reviews-section">
-  <h2>Reviews Received</h2>
-  <div className="reviews-card">
-    <div className="review-item">
-      <h3>John Doe</h3>
-      <p>"Great work! Delivered on time and exceeded expectations."</p>
-      <span>⭐️⭐️⭐️⭐️⭐️</span>
-    </div>
-    <div className="review-item">
-      <h3>Jane Smith</h3>
-      <p>"Highly skilled and professional. Will definitely work with again."</p>
-      <span>⭐️⭐️⭐️⭐️⭐️</span>
-    </div>
-    <div className="review-item">
-      <h3>Alex Johnson</h3>
-      <p>"Excellent communication and quality of work."</p>
-      <span>⭐️⭐️⭐️⭐️⭐️</span>
-    </div>
-  </div>
-</div>
-
-      {/* Completion Line */}
-      <div className="completion-line">
-        <div className="progress-bar" style={{ width: `${completionPercentage()}%` }}></div>
-        <span>{completionPercentage()}% Profile Complete</span>
+      {/* Second Row: Achievements */}
+      <div className="achievements-section">
+        <h2>Achievements</h2>
+        <div className="achievements-container">
+          {profile.achievements && profile.achievements.length > 0 ? (
+            profile.achievements.map((achievement, index) => (
+              <div key={index} className="achievement-box">
+                <h3>{achievement.title}</h3>
+                <p>{achievement.description}</p>
+              </div>
+            ))
+          ) : (
+            <p>No achievements listed.</p>
+          )}
+        </div>
       </div>
 
-      {/* Edit Modal (Conditional Rendering) */}
+      {/* Third Row: Reviews */}
+      <div className="reviews-section">
+        <h2>Reviews Received</h2>
+        <div className="reviews-card">
+          {profile.reviews && profile.reviews.length > 0 ? (
+            profile.reviews.map((review, index) => (
+              <div key={index} className="review-item">
+                <h3>{review.reviewer || "Anonymous"}</h3>
+                <p>"{review.comment || "No comment"}"</p>
+                <span>{"⭐".repeat(review.rating || 0)}</span>
+              </div>
+            ))
+          ) : (
+            <p>No reviews available.</p>
+          )}
+        </div>
+      </div>
+
+      {/* Edit Modal */}
       {isEditing && (
         <div className="edit-modal">
           <h2>Edit Profile</h2>
           <input
             type="text"
-            value={tempProfile.name}
-            onChange={(e) => handleChange('name', e.target.value)}
+            value={tempProfile.name || ""}
+            onChange={(e) => handleChange("name", e.target.value)}
+            placeholder="Full Name"
+          />
+          <input
+            type="email"
+            value={tempProfile.email || ""}
+            onChange={(e) => handleChange("email", e.target.value)}
+            placeholder="Email"
+          />
+          <input
+            type="password"
+            value={tempProfile.password || ""}
+            onChange={(e) => handleChange("password", e.target.value)}
+            placeholder="Password"
+          />
+          <input
+            type="text"
+            value={tempProfile.profilePhoto || ""}
+            onChange={(e) => handleChange("profilePhoto", e.target.value)}
+            placeholder="Profile Photo URL"
           />
           <textarea
-            value={tempProfile.bio}
-            onChange={(e) => handleChange('bio', e.target.value)}
+            value={tempProfile.bio || ""}
+            onChange={(e) => handleChange("bio", e.target.value)}
+            placeholder="Tell about yourself (max 100 words)"
+            maxLength="100"
           />
-          {tempProfile.skills.map((skill, index) => (
-            <input
-              key={index}
-              type="text"
-              value={skill}
-              onChange={(e) => handleSkillChange(index, e.target.value)}
-            />
-          ))}
         </div>
       )}
     </div>

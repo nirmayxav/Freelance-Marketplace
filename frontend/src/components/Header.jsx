@@ -4,12 +4,15 @@ import axios from 'axios';
 import './App.css';
 
 const Header = () => {
+  const navigate = useNavigate();
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [signupData, setSignupData] = useState({ username: '', name: '', email: '', role: 'freelancer', password: '' });
+  const [signupData, setSignupData] = useState({ username: '', email: '', password: '' });
+  const [forgotEmail, setForgotEmail] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
+  const [message, setMessage] = useState('');
 
   const handleLoginChange = (e) => {
     setLoginData({ ...loginData, [e.target.id]: e.target.value });
@@ -19,18 +22,22 @@ const Header = () => {
     setSignupData({ ...signupData, [e.target.id]: e.target.value });
   };
 
+  const handleForgotChange = (e) => {
+    setForgotEmail(e.target.value);
+  };
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/login', {  // Updated URL
+      const response = await axios.post('http://localhost:5001/api/auth/login', {
         email: loginData.email.trim(),
         password: loginData.password.trim(),
       });
       console.log('Login successful:', response.data);
-      localStorage.setItem('token', response.data.token);  // Store token
+      localStorage.setItem('token', response.data.token);
       setShowLogin(false);
-      navigate('/mainpage');  // Navigate to the main page
+      navigate('/main');
     } catch (error) {
       console.error('Login failed:', error.response?.data || error.message);
       setError(error.response?.data?.error || 'Login failed. Please try again.');
@@ -41,19 +48,33 @@ const Header = () => {
     e.preventDefault();
     setError('');
     try {
-      const response = await axios.post('http://localhost:5001/api/auth/register', {  // Updated URL
+      const response = await axios.post('http://localhost:5001/api/auth/register', {
         username: signupData.username.trim(),
-        name: signupData.name.trim(),
         email: signupData.email.trim(),
-        role: signupData.role.trim(),
         password: signupData.password.trim(),
       });
       console.log('Signup successful:', response.data);
       setShowSignup(false);
-      setShowLogin(true);  // Show login form after successful signup
+      setShowLogin(true);
     } catch (error) {
       console.error('Signup failed:', error.response?.data || error.message);
       setError(error.response?.data?.error || 'Signup failed. Please try again.');
+    }
+  };
+
+  const handleForgotSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+    try {
+      const response = await axios.post('http://localhost:5001/api/auth/forgot-password', {
+        email: forgotEmail.trim(),
+      });
+      console.log('Forgot password request sent:', response.data);
+      setMessage('A reset link has been sent to your email.');
+    } catch (error) {
+      console.error('Forgot password failed:', error.response?.data || error.message);
+      setError(error.response?.data?.error || 'Failed to send reset email. Try again.');
     }
   };
 
@@ -84,7 +105,7 @@ const Header = () => {
                 <input type="password" id="password" placeholder="Enter your password" value={loginData.password} onChange={handleLoginChange} required />
               </div>
               <div className="forgot">
-                <a href="/forgot-password">Forgot Password?</a>
+                <a href="#" onClick={() => { setShowLogin(false); setShowForgotPassword(true); }}>Forgot Password?</a>
               </div>
               <button type="submit" className="sign">Sign In</button>
             </form>
@@ -96,9 +117,7 @@ const Header = () => {
                 </a>
               </p>
             </div>
-            <button className="close-button" onClick={() => setShowLogin(false)}>
-              &times;
-            </button>
+            <button className="close-button" onClick={() => setShowLogin(false)}>&times;</button>
           </div>
         </div>
       )}
@@ -114,20 +133,8 @@ const Header = () => {
                 <input type="text" id="username" placeholder="Enter your username" value={signupData.username} onChange={handleSignupChange} required />
               </div>
               <div className="input-group">
-                <label htmlFor="name">Name</label>
-                <input type="text" id="name" placeholder="Enter your name" value={signupData.name} onChange={handleSignupChange} required />
-              </div>
-              <div className="input-group">
                 <label htmlFor="email">Email</label>
                 <input type="email" id="email" placeholder="Enter your email" value={signupData.email} onChange={handleSignupChange} required />
-              </div>
-              <div className="input-group">
-                <label htmlFor="role">Role</label>
-                <select id="role" value={signupData.role} onChange={handleSignupChange} required>
-                  <option value="freelancer">Freelancer</option>
-                  <option value="client">Client</option>
-                  <option value="both">Both</option>
-                </select>
               </div>
               <div className="input-group">
                 <label htmlFor="password">Password</label>
@@ -143,9 +150,27 @@ const Header = () => {
                 </a>
               </p>
             </div>
-            <button className="close-button" onClick={() => setShowSignup(false)}>
-              &times;
-            </button>
+            <button className="close-button" onClick={() => setShowSignup(false)}>&times;</button>
+          </div>
+        </div>
+      )}
+
+      {showForgotPassword && (
+        <div className="popup-overlay">
+          <div className="form-container">
+            <br></br>
+            <h2 className="title">Forgot Password</h2>
+            {error && <p className="error-message">{error}</p>}
+            {message && <p className="success-message">{message}</p>}
+            <form className="form" onSubmit={handleForgotSubmit}>
+              <div className="input-group">
+                <label htmlFor="forgot-email">Email</label>
+                <input type="email" id="forgot-email" placeholder="Enter your email" value={forgotEmail} onChange={handleForgotChange} required />
+              </div>
+              <br></br>
+              <button type="submit" className="sign">Send</button>
+            </form>
+            <button className="close-button" onClick={() => setShowForgotPassword(false)}>&times;</button>
           </div>
         </div>
       )}

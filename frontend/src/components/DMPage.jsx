@@ -1,128 +1,112 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
-
+import { useNavigate } from 'react-router-dom';
+import io from "socket.io-client";  // Import socket.io
 import './DMPage.css';
 
-const DMPage = () => {
+const socket = io("http://localhost:5001"); // Adjust if backend is on another host
+
+const DMPage = ({ currentUser }) => {
   const navigate = useNavigate();
-    
-      const navigateToHome = () => {
-        navigate('/homes'); // Navigate to the profile page
-      };
-    
-      const navigateToChat = () => {
-        navigate('/chat'); // Navigate to the chat page
-      };
-      const navigateToproj = () => {
-        navigate('/ong-proj'); // Navigate to the chat page
-      };
-      const navigateToPost = () => {
-        navigate('/post'); // Navigate to the chat page
-      };
-      const navigateContact = () => {
-        navigate('/contact'); // Navigate to the chat page
-      };
-      const navigateToAbout = () => {
-        navigate('/abt'); // Navigate to the chat page
-      };
-  const [messages, setMessages] = useState([
-    { id: 1, text: 'Hi! Are you available for the project?', sender: 'client', timestamp: '10:30 AM' },
-    { id: 2, text: 'Yes, I am. Can you share details?', sender: 'freelancer', timestamp: '10:31 AM' },
-    { id: 3, text: 'I need a responsive website built with React', sender: 'client', timestamp: '10:32 AM' },
-  ]);
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
+  const [dmList, setDmList] = useState([]); // List of DM users
   const messagesEndRef = useRef(null);
- 
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
+  // Scroll to latest message
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Register current user with socket
+  useEffect(() => {
+    if (currentUser?._id) {
+      socket.emit("register", currentUser._id);
+    }
+
+    // Listen for new messages
+    socket.on("receiveMessage", (message) => {
+      setMessages((prev) => [...prev, message]);
+
+      // If sender isn't in DM list, add them
+      if (!dmList.some(user => user._id === message.sender)) {
+        socket.emit("addToDM", message.sender);
+      }
+    });
+
+    // Add new contact to DM list
+    socket.on("addToDM", (newUser) => {
+      if (!dmList.some(user => user._id === newUser._id)) {
+        setDmList((prev) => [...prev, newUser]);
+      }
+    });
+
+    return () => {
+      socket.off("receiveMessage");
+      socket.off("addToDM");
+    };
+  }, [currentUser, dmList]);
+
+  // Send a message
   const handleSend = () => {
     if (newMessage.trim()) {
       const message = {
-        id: messages.length + 1,
-        text: newMessage,
-        sender: 'client', // Change based on auth
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        sender: currentUser._id,
+        receiver: "receiverUserId", // Replace with selected user's ID
+        message: newMessage,
       };
-      setMessages([...messages, message]);
+
+      socket.emit("sendMessage", message);
       setNewMessage('');
     }
   };
 
-  const handlePostJobClick = () => {
-    navigate('/create-timeline'); // Navigate to the create-timeline page
-  };
-
   return (
     <div className="dm-container">
-       <div className="header">
-        <img src='images/image10.png' alt="User" className="" />
-        
+      {/* Navigation */}
+      <div className="header">
+        <img src="images/image10.png" alt="User" />
         <div className="header-right">
-          <span onClick={navigateToHome}>Home</span>
-          <span onClick={navigateContact}>Contact Us</span>
-          <span onClick={navigateToAbout}>About</span>
-          
-          <span onClick={navigateToproj}>Ongoing Projects</span>
-          <span onClick={navigateToPost}>Post a Job</span>
-
-          <span >Settings</span>
+          <span onClick={() => navigate('/homes')}>Home</span>
+          <span onClick={() => navigate('/contact')}>Contact Us</span>
+          <span onClick={() => navigate('/abt')}>About</span>
+          <span onClick={() => navigate('/ong-proj')}>Ongoing Projects</span>
+          <span onClick={() => navigate('/post')}>Post a Job</span>
+          <span>Settings</span>
         </div>
       </div>
 
+      {/* Sidebar with DM List */}
       <div className="dm-sidebar">
         <h2>Conversations</h2>
-        <div className="active-chat">
-          <div className="user-avatar">JD</div>
-          <div className="user-info">
-            <h3>John Doe</h3>
-            <p>Client</p>
+        {dmList.map((user) => (
+          <div key={user._id} className="active-chat">
+            <div className="user-avatar">{user.name[0]}</div>
+            <div className="user-info">
+              <h3>{user.name}</h3>
+              <p>{user.role}</p>
+            </div>
           </div>
-        </div>
-        <div className="other-user">
-          <div className="user-avatar">SP</div>
-          <div className="user-info">
-            <h3>Sarah Parker</h3>
-            <p>Freelancer</p>
-          </div>
-        </div>
-
-        {/* Accept Client Button */}
-        <div className="accept-client">
-          <button 
-            onClick={handlePostJobClick} // Use the handlePostJobClick function
-            className="accept-button"
-          >
-            ✅ Accept Client
-          </button>
-        </div>
+        ))}
       </div>
 
+      {/* Chat Window */}
       <div className="chat-window">
         <div className="messages-container">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`message ${message.sender === 'client' ? 'sent' : 'received'}`}
-            >
+          {messages.map((msg, index) => (
+            <div key={index} className={`message ${msg.sender === currentUser._id ? 'sent' : 'received'}`}>
               <div className="message-content">
                 <div className="message-header">
-                  <span className="sender">{message.sender}</span>
-                  <span className="timestamp">{message.timestamp}</span>
+                  <span className="sender">{msg.sender === currentUser._id ? "You" : "Client"}</span>
+                  <span className="timestamp">{new Date().toLocaleTimeString()}</span>
                 </div>
-                <p>{message.text}</p>
+                <p>{msg.message}</p>
               </div>
             </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Message Input */}
         <div className="message-input">
           <input
             type="text"

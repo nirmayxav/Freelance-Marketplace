@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import './PostJob.css'; // Ensure you have this CSS file for styling
-
 
 const PostJob = () => {
   const [jobData, setJobData] = useState({
     title: '',
     description: '',
-    category: '',
     budget: '',
     timeline: '',
     skills: [],
@@ -16,27 +15,13 @@ const PostJob = () => {
 
   const [newSkill, setNewSkill] = useState('');
   const navigate = useNavigate();
-  
-    
-      const navigateToHome = () => {
-        navigate('/homes'); // Navigate to the profile page
-      };
-    
-      const navigateToChat = () => {
-        navigate('/chat'); // Navigate to the chat page
-      };
-      const navigateToproj = () => {
-        navigate('/ong-proj'); // Navigate to the chat page
-      };
-      const navigateToPost = () => {
-        navigate('/post'); // Navigate to the chat page
-      };
-      const navigateContact = () => {
-        navigate('/contact'); // Navigate to the chat page
-      };
-      const navigateToAbout = () => {
-        navigate('/abt'); // Navigate to the chat page
-      };
+
+  const navigateToHome = () => navigate('/homes');
+  const navigateToChat = () => navigate('/chat');
+  const navigateToproj = () => navigate('/ong-proj');
+  const navigateToPost = () => navigate('/post');
+  const navigateContact = () => navigate('/contact');
+  const navigateToAbout = () => navigate('/abt');
 
   const handleInputChange = (e) => {
     setJobData({ ...jobData, [e.target.name]: e.target.value });
@@ -50,38 +35,54 @@ const PostJob = () => {
   };
 
   const handleFileUpload = (e) => {
-    const files = Array.from(e.target.files);
-    setJobData({ ...jobData, attachments: [...jobData.attachments, ...files] });
+    setJobData({ ...jobData, attachments: [e.target.files[0]] });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Add job posting logic here
-    console.log('Job Posted:', jobData);
-    navigate('/jobs');
+
+    const formData = new FormData();
+    formData.append('title', jobData.title);
+    formData.append('description', jobData.description);
+    formData.append('budget', jobData.budget);
+    formData.append('timeline', jobData.timeline);
+    formData.append('skillsRequired', jobData.skills.join(','));
+    if (jobData.attachments.length > 0) {
+      formData.append('fileAttachment', jobData.attachments[0]);
+    }
+
+    try {
+      const response = await axios.post('http://localhost:5001/api/jobs/create', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+
+      console.log('Job Posted:', response.data);
+      navigate('/homes');
+    } catch (error) {
+      console.error('Error posting job:', error.response?.data || error.message);
+    }
   };
 
   return (
     <div className="post-job-container">
-       <div className="header">
-        <img src='images/image10.png' alt="User" className="" />
-        
+      <div className="header">
+        <img src='images/image10.png' alt="User" />
         <div className="header-right">
           <span onClick={navigateToHome}>Home</span>
           <span onClick={navigateToChat}>Chat</span>
           <span onClick={navigateToproj}>Ongoing Projects</span>
-          <span onClick={navigateToPost}>Post a Job</span>
+          
           <span onClick={navigateContact}>Contact Us</span>
           <span onClick={navigateToAbout}>About</span>
-          
-
-          <span >Settings</span>
+          <span>Settings</span>
         </div>
       </div>
       <h1>Post a New Job</h1>
       
       <form onSubmit={handleSubmit} className="job-form">
-        {/* Job Details Section */}
         <div className="form-section">
           <h2>Job Details</h2>
           <div className="form-group">
@@ -105,26 +106,8 @@ const PostJob = () => {
               required
             />
           </div>
-
-          <div className="form-group">
-            <label>Category</label>
-            <select
-              name="category"
-              value={jobData.category}
-              onChange={handleInputChange}
-              required
-            >
-              <option value="">Select Category</option>
-              <option value="web-development">Web Development</option>
-              <option value="mobile-development">Mobile Development</option>
-              <option value="design">Design</option>
-              <option value="writing">Writing</option>
-              <option value="marketing">Marketing</option>
-            </select>
-          </div>
         </div>
 
-        {/* Skills Required Section */}
         <div className="form-section">
           <h2>Skills Required</h2>
           <div className="skills-input">
@@ -156,7 +139,6 @@ const PostJob = () => {
           </div>
         </div>
 
-        {/* Budget & Timeline */}
         <div className="form-section">
           <h2>Budget & Timeline</h2>
           <div className="budget-timeline">
@@ -173,32 +155,26 @@ const PostJob = () => {
             </div>
 
             <div className="form-group">
-              <label>Timeline</label>
-              <select
-                name="timeline"
-                value={jobData.timeline}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Select Timeline</option>
-                <option value="1-week">1 Week</option>
-                <option value="2-weeks">2 Weeks</option>
-                <option value="1-month">1 Month</option>
-                <option value="3-months">3 Months</option>
-                <option value="custom">Custom</option>
-              </select>
-            </div>
+  <label>Timeline</label>
+  <input
+    type="text"
+    name="timeline"
+    value={jobData.timeline}
+    onChange={handleInputChange}
+    placeholder="Enter timeline (e.g., 2 weeks, 1 month)"
+    required
+  />
+</div>
+
           </div>
         </div>
 
-        {/* Attachments Section */}
         <div className="form-section">
           <h2>Attachments</h2>
           <div className="file-upload">
             <label className="upload-area">
               <input
                 type="file"
-                multiple
                 onChange={handleFileUpload}
               />
               <div className="upload-content">

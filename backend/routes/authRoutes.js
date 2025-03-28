@@ -2,19 +2,15 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');  
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 // Register new user
 router.post('/register', async (req, res) => {
-    const { username, name, email, password, role } = req.body;
+    const { username, email, password } = req.body;
 
-    if (!username || !name || !email || !password || !role) {
+    if (!username || !email || !password) {
         return res.status(400).json({ error: 'Missing required fields.' });
-    }
-
-    // Role validation
-    const validRoles = ['freelancer', 'client', 'both'];
-    if (!validRoles.includes(role)) {
-        return res.status(400).json({ error: 'Invalid role. Role must be freelancer, client, or both.' });
     }
 
     try {
@@ -24,16 +20,14 @@ router.post('/register', async (req, res) => {
             return res.status(400).json({ error: 'User already exists.' });
         }
 
-        // Create new user (no need to hash the password here)
+        // Create new user
         const user = new User({
             username: username.trim(),
-            name: name.trim(),
             email: email.trim(),
-            password: password, // Plain password (Mongoose will hash it automatically)
-            role: role.trim(),
+            password: password, // Mongoose will hash it automatically
         });
 
-        await user.save(); // Mongoose will hash the password via pre-save hook
+        await user.save();
         console.log("User registered:", { email });
 
         res.status(201).json({ message: 'User registered successfully' });
@@ -66,21 +60,65 @@ router.post('/login', async (req, res) => {
 
         // Generate JWT
         const token = jwt.sign(
-            { 
-                id: user._id, 
-                role: user.role 
-            },
+            { id: user._id }, // Removed role
             process.env.JWT_SECRET,
-            {
-                expiresIn: '1h',
-            }
+            { expiresIn: '1h' }
         );
 
-        res.status(200).json({ token, user: { id: user._id, name: user.name, role: user.role } });
+        res.status(200).json({ token, user: { id: user._id, username: user.username } });
     } catch (error) {
         console.error("Login error:", error);
         res.status(500).json({ error: 'Error logging in.' });
     }
 });
+
+// Nodemailer Transporter
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'nirmay0604@gmail.com',
+        pass: 'kueu raga khvo bcdx'
+    }
+});
+
+// Forgot Password Route
+const bcrypt = require('bcryptjs');
+
+router.post('/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email: email.trim() });
+        if (!user) {
+            console.error("❌ User not found:", email);
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // Generate new temporary password
+        const newPassword = crypto.randomBytes(6).toString('hex');
+        console.log("🔑 New Password Generated:", newPassword);
+
+        // ✅ Hash the new password before saving
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = newPassword;
+        await user.save();
+        console.log("✅ Password Updated in DB for:", email);
+
+        // Send email with new password
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: user.email,
+            subject: 'Password Reset Request',
+            text: `Your new password is: ${newPassword}\nPlease change it after logging in.`,
+        });
+
+        res.json({ message: 'A new password has been sent to your email.' });
+
+    } catch (error) {
+        console.error("❌ Forgot Password Error:", error);
+        res.status(500).json({ error: 'Failed to reset password.' });
+    }
+});
+
 
 module.exports = router;

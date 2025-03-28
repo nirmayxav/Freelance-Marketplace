@@ -36,20 +36,18 @@ const navigate = useNavigate();
         <div className="step">
           <img src="/images/image2.png" alt="Step 1" className="step-logo" />
           <p className="description">
-            Discover top talent tailored to your needs using our advanced search tools. Filter freelancers by skills, ratings, location, pricing, and availability to narrow down candidates who align with your project goals. 
-          </p>
+         <b>Find Talent </b>– Use advanced search filters to hire the best freelancers based on skills, ratings, and availability.          </p>
         </div>
         <div className="step">
           <img src="/images/image3.png" alt="Step 2" className="step-logo" />
           <p className="description">
-            List your projects and choose from Bitcoin, credit/debit cards, or 50+ currencies for seamless payments. Set milestones with automated escrow, ensuring security for both parties. Hire globally, pay instantly—no borders, no delays.
-          </p>
+         <b>Post & Pay Securely </b>– List projects, set milestones, and pay via Bitcoin, cards, or 50+ currencies with escrow protection.
+</p>
         </div>
         <div className="step">
           <img src="/images/image4.png" alt="Step 3" className="step-logo" />
           <p className="description">
-            Browse thousands of jobs matching your skills and bid with competitive rates. Work confidently with protected milestones and withdraw earnings via PayPal, crypto, or direct bank transfer. Focus on delivering excellence—we handle payment reliability.
-          </p>
+          <b>Work & Earn </b>– Bid on jobs, complete milestones, and withdraw earnings via PayPal, crypto, or bank transfer—hassle-free!          </p>
         </div>
       </div>
       <div className="image-with-button">
@@ -62,7 +60,7 @@ const navigate = useNavigate();
   
     <div className="image-with-button">
       <div className="text-content">
-        <h2 className="section-header">Find the Best Talent for Your Projects</h2>
+        <h2 className="section-header"><b>Find the Best Talent for Your Projects</b></h2>
         <p className="description">
           Post your projects and find the best freelancers tailored to your needs. Whether it's a quick task or a long-term collaboration, our platform ensures you connect with top talent effortlessly.
         </p>
@@ -81,7 +79,7 @@ const navigate = useNavigate();
     <div className="post-job-section">
       <img src="/images/image22.jpg" alt="Post Job Image" className="section-image" />
       <div className="text-content">
-        <h2 className="section-header">Post Jobs & Hire Top Talent</h2>
+        <h2 className="section-header"><b>Post Jobs & Hire Top Talent</b></h2>
         <p className="description">
           Easily post your projects and connect with skilled freelancers. Whether it's a quick task or a long-term collaboration, our platform ensures you find the right talent for your needs.
         </p>

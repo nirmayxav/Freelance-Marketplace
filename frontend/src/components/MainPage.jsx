@@ -1,185 +1,212 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './MainPage.css'; // Ensure you have this CSS file for styling
+import JobCard from './JobCard'; // Separate job card component
+import './MainPage.css'; // Ensure this CSS file contains styles
 
 const MainPage = () => {
   const navigate = useNavigate();
+  const [jobs, setJobs] = useState([]); // All jobs fetched from the API
+  const [featuredJob, setFeaturedJob] = useState(null); // Most liked job
+  const [trendingJobs, setTrendingJobs] = useState([]); // Top 3 most liked jobs
+  const [generalJobs, setGeneralJobs] = useState([]); // Remaining jobs
+  const [filteredGeneralJobs, setFilteredGeneralJobs] = useState([]); // Filtered jobs for general listing
+  const [searchTerm, setSearchTerm] = useState(''); // Search term state
+  const [budgetRange, setBudgetRange] = useState([0, 10000]); // Budget range state
+  const [skillsFilter, setSkillsFilter] = useState(''); // Skills filter state
 
-  const navigateToProfile = () => {
-    navigate('/profile'); // Navigate to the profile page
+  // Fetch jobs from backend
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  // Function to fetch jobs
+  const fetchJobs = async () => {
+    try {
+      const res = await fetch('/api/jobs'); // Update API route if needed
+      const data = await res.json();
+
+      // Sort jobs by likes in descending order
+      const sortedJobs = data.sort((a, b) => b.likes - a.likes);
+      setJobs(sortedJobs);
+
+      // Set featured job (most liked job)
+      setFeaturedJob(sortedJobs[0]);
+
+      // Set trending jobs (next 3 most liked jobs)
+      setTrendingJobs(sortedJobs.slice(1, 4));
+
+      // Set general jobs (remaining jobs)
+      setGeneralJobs(sortedJobs.slice(4));
+      setFilteredGeneralJobs(sortedJobs.slice(4)); // Initialize filtered general jobs
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+    }
   };
 
-  const navigateToChat = () => {
-    navigate('/chat'); // Navigate to the chat page
+  // Function to handle likes
+  const handleLike = async (jobId) => {
+    try {
+      const token = localStorage.getItem('token'); // Get the token from storage
+      const res = await fetch(`/api/jobs/${jobId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`, // Include the token in the headers
+        },
+      });
+
+      if (res.ok) {
+        // Refresh the job list after liking
+        fetchJobs();
+      } else {
+        console.error('Failed to like job:', res.statusText);
+      }
+    } catch (err) {
+      console.error('Error liking job:', err);
+    }
   };
-  const navigateToproj = () => {
-    navigate('/ong-proj'); // Navigate to the chat page
+
+  const handleSearch = () => {
+    const filteredJobs = generalJobs.filter((job) =>
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      job.description.toLowerCase().includes(searchTerm.toLowerCase())  
+    );
+    setFilteredGeneralJobs(filteredJobs);
   };
-  const navigateToPost = () => {
-    navigate('/post'); // Navigate to the chat page
+
+
+  // Function to handle filter application
+  const handleApplyFilters = () => {
+    const filteredJobs = generalJobs.filter((job) => {
+      const withinBudget =
+        job.budget >= budgetRange[0] && job.budget <= budgetRange[1];
+      const matchesSkills = skillsFilter
+        ? job.skillsRequired.some((skill) =>
+            skill.toLowerCase().includes(skillsFilter.toLowerCase())
+          )
+        : true;
+      return withinBudget && matchesSkills;
+    });
+    setFilteredGeneralJobs(filteredJobs);
   };
-  const navigateContact = () => {
-    navigate('/contact'); // Navigate to the chat page
-  };
-  const navigateToAbout = () => {
-    navigate('/abt'); // Navigate to the chat page
-  };
+
   return (
     <div className="profile-page">
-    {/* Header Section */}
-    <div className="header">
-      <img src='images/image10.png' alt="User" className="" />
-      
-      
-      <div className="header-right">
-        <span onClick={navigateToProfile}>Profile</span>
-        <span onClick={navigateToChat}>Chat</span>
-        <span onClick={navigateToproj}>Ongoing Projects</span>
-        <span onClick={navigateToPost}>Post a Job</span>
-        <span onClick={navigateContact}>Contact Us</span>
-        <span onClick={navigateToAbout}>About</span>
-        <span>Settings</span>
-      </div>
-    </div>
-
-    
-
-    <div className="job-platform">
-  {/* Hero Section */}
-  <div className="hero-filter-container">
-  {/* Hero Section */}
-  <div className="hero-section">
-    <h1>Discover Your Next Opportunity</h1>
-    <p className="hero-subtitle">Join the future of work with cutting-edge projects and global opportunities.</p>
-    <div className="search-container">
-      <input type="text" placeholder="Search jobs (e.g., 'AI Engineer')" className="search-bar" />
-      <button className="search-button">🔍 Search</button>
-    </div>
-    <div className="featured-job">
-      <h2>🌟 Featured Job</h2>
-      <div className="featured-job-card">
-        <h3>AI/ML Engineer</h3>
-        <p>Build intelligent systems and machine learning models for real-world applications.</p>
-        <div className="skills-tags">
-          <span>Python</span>
-          <span>TensorFlow</span>
-          <span>Neural Networks</span>
-        </div>
-        <div className="job-meta">
-          <span>💰 $12,000</span>
-          <span>⏳ 45 Days</span>
+      {/* Header Section */}
+      <div className="header">
+        <img src="images/image10.png" alt="User" className="" />
+        <div className="header-right">
+          <span onClick={() => navigate('/profile')}>Profile</span>
+          <span onClick={() => navigate('/chat')}>Chat</span>
+          <span onClick={() => navigate('/ong-proj')}>Ongoing Projects</span>
+          <span onClick={() => navigate('/post')}>Post a Job</span>
+          <span onClick={() => navigate('/contact')}>Contact Us</span>
+          <span onClick={() => navigate('/abt')}>About</span>
+          <span>Settings</span>
         </div>
       </div>
-    </div>
-  </div>
 
-  {/* Filter Section */}
-  <div className="filter-section">
-    <h2>Refine Your Search</h2>
-    <div className="filter-group">
-      <label>Category</label>
-      <select className="filter-dropdown">
-        <option>All Categories</option>
-        <option>AI/ML</option>
-        <option>Web Development</option>
-        <option>Blockchain</option>
-      </select>
-    </div>
-    <div className="filter-group">
-      <label>Budget Range</label>
-      <input type="range" min="0" max="10000" className="budget-slider" />
-      <span>$0 - $10,000</span>
-    </div>
-    <div className="filter-group">
-      <label>Skills</label>
-      <input type="text" placeholder="Enter skills (e.g., React, Python)" className="skills-input" />
-    </div>
-    <button className="apply-filters">Apply Filters</button>
-  </div>
-</div>
-  {/* Trending Jobs Section */}
-  <div className="trending-jobs">
-  <h2>🔥 Trending Jobs</h2>
-  <div className="trending-grid">
-    {/* Job 1 */}
-    <div className="trending-card">
-      <div className="trending-badge">Most Applied</div>
-      <h3>AI Solutions Architect</h3>
-      <p className="applications">🎯 245 Applications</p>
-      <p>Design and implement enterprise-scale AI solutions</p>
-      <div className="skills-tags">
-        <span>Python</span>
-        <span>TensorFlow</span>
-        <span>Cloud AI</span>
-      </div>
-      <div className="trending-meta">
-        <span>💰 $15,000</span>
-        <span>⏳ 60 Days</span>
-      </div>
-      <button className="apply-btn">Apply Now</button>
-    </div>
+      {/* Job Platform Section */}
+      <div className="job-platform">
+        {/* Hero Section */}
+        <div className="hero-filter-container">
+          <div className="hero-section">
+            <h1>Discover Your Next Opportunity</h1>
+            <p className="hero-subtitle">
+              Join the future of work with cutting-edge projects and global opportunities.
+            </p>
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Search jobs (e.g., 'AI Engineer')"
+                className="search-bar"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <button className="search-button" onClick={handleSearch}>
+                🔍 Search
+              </button>
+            </div>
 
-    {/* Job 2 */}
-    <div className="trending-card">
-      <h3>Blockchain Developer</h3>
-      <p className="applications">🎯 198 Applications</p>
-      <p>Build decentralized applications on Ethereum</p>
-      <div className="skills-tags">
-        <span>Solidity</span>
-        <span>Web3</span>
-        <span>Smart Contracts</span>
-      </div>
-      <div className="trending-meta">
-        <span>💰 $12,000</span>
-        <span>⏳ 45 Days</span>
-      </div>
-      <button className="apply-btn">Apply Now</button>
-    </div>
+            {/* Featured Job Section */}
+            {featuredJob && (
+              <div className="featured-job">
+                <h2>🌟 Featured Job</h2>
+                <div className="featured-job-card">
+                  <h3>{featuredJob.title}</h3>
+                  <p>{featuredJob.description}</p>
+                  <div className="skills-tags">
+                    {featuredJob.skillsRequired.map((skill, index) => (
+                      <span key={index}>{skill}</span>
+                    ))}
+                  </div>
+                  <div className="job-meta">
+                    <span>💰 ${featuredJob.budget}</span>
+                    <span>⏳ {featuredJob.timeline}</span>
+                    <span>❤️ {featuredJob.likes} Likes</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
-    {/* Job 3 */}
-    <div className="trending-card">
-      <h3>Quantum Computing Engineer</h3>
-      <p className="applications">🎯 176 Applications</p>
-      <p>Develop algorithms for quantum processors</p>
-      <div className="skills-tags">
-        <span>Q#</span>
-        <span>Quantum ML</span>
-        <span>Python</span>
-      </div>
-      <div className="trending-meta">
-        <span>💰 $20,000</span>
-        <span>⏳ 90 Days</span>
-      </div>
-      <button className="apply-btn">Apply Now</button>
-    </div>
-  </div>
-</div>
-  {/* Job Grid */}
-  <div className="job-grid">
-    {/* Repeat this card for multiple jobs */}
-    <div className="job-card">
-      <div className="engagement-buttons">
-        <button className="like-btn">❤️ 24</button>
-        <button className="bookmark-btn">📌</button>
-        <button className="share-btn">📤</button>
-      </div>
-      <h3>Frontend Developer Needed</h3>
-      <p>Create responsive user interfaces for SaaS platform</p>
-      <div className="skills-tags">
-        <span>JavaScript</span>
-        <span>CSS</span>
-        <span>API Integration</span>
-      </div>
-      <div className="job-meta">
-        <span>💰 $2,500</span>
-        <span>⏳ 14 Days</span>
-      </div>
-      <button className="apply-btn">Apply Now</button>
-    </div>
-  </div>
+          {/* Filter Section */}
+          <div className="filter-section">
+            <h2>Refine Your Search</h2>
+            <div className="filter-group">
+              <label>Budget Range</label>
+              <input
+                type="range"
+                min="0"
+                max="10000"
+                value={budgetRange[1]}
+                onChange={(e) => setBudgetRange([0, parseInt(e.target.value)])}
+                className="budget-slider"
+              />
+              <span>${budgetRange[0]} - ${budgetRange[1]}</span>
+            </div>
+            <div className="filter-group">
+              <label>Skills</label>
+              <input
+                type="text"
+                placeholder="Enter skills (e.g., React, Python)"
+                className="skills-input"
+                value={skillsFilter}
+                onChange={(e) => setSkillsFilter(e.target.value)}
+              />
+            </div>
+            <button className="apply-filters" onClick={handleApplyFilters}>
+              Apply Filters
+            </button>
+          </div>
+        </div>
 
-</div>
-</div>  
+        {/* Trending Jobs Section */}
+        <div className="trending-jobs">
+          <h2>🔥 Trending Jobs</h2>
+          <div className="trending-grid">
+            {trendingJobs.length > 0 ? (
+              trendingJobs.map((job) => (
+                <JobCard key={job._id} job={job} onLike={handleLike} />
+              ))
+            ) : (
+              <p>No trending jobs available</p>
+            )}
+          </div>
+        </div>
+
+        {/* Job Grid (General Listing) */}
+        <div className="job-grid">
+          {filteredGeneralJobs.length > 0 ? (
+            filteredGeneralJobs.map((job) => (
+              <JobCard key={job._id} job={job} onLike={handleLike} />
+            ))
+          ) : (
+            <p>No jobs available</p>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

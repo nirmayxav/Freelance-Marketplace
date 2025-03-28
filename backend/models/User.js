@@ -4,11 +4,29 @@ const bcrypt = require('bcryptjs');
 // Define the User schema
 const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
-    name: { type: String, required: true, unique: true },
+   
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['freelancer', 'client', 'both'], default: 'freelancer' },
-});
+    bio: { type: String },
+    skills: { type: [String], default: [] },
+    image: { type: String, default: 'default_user_image.jpg' },
+    rating: { type: Number, default: 0 },
+    coins: { type: Number, default: 0 },
+    moneyReceived: { type: Number, default: 0 },
+    moneyInEscrow: { type: Number, default: 0 },
+    achievements: [
+        {
+            title: String,
+            description: String,
+        }
+    ],
+    reviews: [
+        {
+            reviewer: String,
+            comment: String,
+        }
+    ],
+}, { timestamps: true });
 
 // Hash password before saving the user
 UserSchema.pre('save', async function (next) {
