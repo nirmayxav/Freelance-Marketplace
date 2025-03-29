@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import JobCard from './JobCard'; // Separate job card component
-import './MainPage.css'; // Ensure this CSS file contains styles
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import JobCard from "./JobCard"; // Ensure this path is correct
+import "./MainPage.css";
+import io from "socket.io-client";
+
+const socket = io("http://localhost:5001");
+
+window.socket = socket; // Make socket globally accessible for debugging
 
 const MainPage = () => {
   const navigate = useNavigate();
@@ -10,9 +15,16 @@ const MainPage = () => {
   const [trendingJobs, setTrendingJobs] = useState([]); // Top 3 most liked jobs
   const [generalJobs, setGeneralJobs] = useState([]); // Remaining jobs
   const [filteredGeneralJobs, setFilteredGeneralJobs] = useState([]); // Filtered jobs for general listing
-  const [searchTerm, setSearchTerm] = useState(''); // Search term state
+  const [searchTerm, setSearchTerm] = useState(""); // Search term state
   const [budgetRange, setBudgetRange] = useState([0, 10000]); // Budget range state
-  const [skillsFilter, setSkillsFilter] = useState(''); // Skills filter state
+  const [skillsFilter, setSkillsFilter] = useState(""); // Skills filter state
+  const [currentUser, setCurrentUser] = useState(null);
+
+  // Retrieve logged-in user from localStorage
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser) setCurrentUser(storedUser);
+  }, []);
 
   // Fetch jobs from backend
   useEffect(() => {
@@ -22,7 +34,7 @@ const MainPage = () => {
   // Function to fetch jobs
   const fetchJobs = async () => {
     try {
-      const res = await fetch('/api/jobs'); // Update API route if needed
+      const res = await fetch("/api/jobs"); // Update API route if needed
       const data = await res.json();
 
       // Sort jobs by likes in descending order
@@ -39,18 +51,18 @@ const MainPage = () => {
       setGeneralJobs(sortedJobs.slice(4));
       setFilteredGeneralJobs(sortedJobs.slice(4)); // Initialize filtered general jobs
     } catch (err) {
-      console.error('Error fetching jobs:', err);
+      console.error("Error fetching jobs:", err);
     }
   };
 
   // Function to handle likes
   const handleLike = async (jobId) => {
     try {
-      const token = localStorage.getItem('token'); // Get the token from storage
+      const token = localStorage.getItem("token"); // Get the token from storage
       const res = await fetch(`/api/jobs/${jobId}/like`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`, // Include the token in the headers
         },
       });
@@ -59,21 +71,20 @@ const MainPage = () => {
         // Refresh the job list after liking
         fetchJobs();
       } else {
-        console.error('Failed to like job:', res.statusText);
+        console.error("Failed to like job:", res.statusText);
       }
     } catch (err) {
-      console.error('Error liking job:', err);
+      console.error("Error liking job:", err);
     }
   };
 
   const handleSearch = () => {
     const filteredJobs = generalJobs.filter((job) =>
-      job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      job.description.toLowerCase().includes(searchTerm.toLowerCase())  
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredGeneralJobs(filteredJobs);
   };
-
 
   // Function to handle filter application
   const handleApplyFilters = () => {
@@ -90,19 +101,29 @@ const MainPage = () => {
     setFilteredGeneralJobs(filteredJobs);
   };
 
+  // Logout functionality: clear localStorage and navigate to home/login page
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setCurrentUser(null);
+    navigate("/");
+  };
+
   return (
     <div className="profile-page">
-      {/* Header Section */}
+      {/* Header Section with Logout */}
       <div className="header">
-        <img src="images/image10.png" alt="User" className="" />
+        <img src="images/image10.png" alt="User" />
         <div className="header-right">
-          <span onClick={() => navigate('/profile')}>Profile</span>
-          <span onClick={() => navigate('/chat')}>Chat</span>
-          <span onClick={() => navigate('/ong-proj')}>Ongoing Projects</span>
-          <span onClick={() => navigate('/post')}>Post a Job</span>
-          <span onClick={() => navigate('/contact')}>Contact Us</span>
-          <span onClick={() => navigate('/abt')}>About</span>
-          <span>Settings</span>
+          <span onClick={() => navigate("/profile")}>Profile</span>
+          <span onClick={() => navigate("/chat")}>Chat</span>
+          <span onClick={() => navigate("/ong-proj")}>Ongoing Projects</span>
+          <span onClick={() => navigate("/post")}>Post a Job</span>
+          <span onClick={() => navigate("/contact")}>Contact Us</span>
+          <span onClick={() => navigate("/abt")}>About</span>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </div>
 
@@ -113,7 +134,8 @@ const MainPage = () => {
           <div className="hero-section">
             <h1>Discover Your Next Opportunity</h1>
             <p className="hero-subtitle">
-              Join the future of work with cutting-edge projects and global opportunities.
+              Join the future of work with cutting-edge projects and global
+              opportunities.
             </p>
             <div className="search-container">
               <input
@@ -160,10 +182,14 @@ const MainPage = () => {
                 min="0"
                 max="10000"
                 value={budgetRange[1]}
-                onChange={(e) => setBudgetRange([0, parseInt(e.target.value)])}
+                onChange={(e) =>
+                  setBudgetRange([0, parseInt(e.target.value)])
+                }
                 className="budget-slider"
               />
-              <span>${budgetRange[0]} - ${budgetRange[1]}</span>
+              <span>
+                ${budgetRange[0]} - ${budgetRange[1]}
+              </span>
             </div>
             <div className="filter-group">
               <label>Skills</label>
@@ -187,7 +213,12 @@ const MainPage = () => {
           <div className="trending-grid">
             {trendingJobs.length > 0 ? (
               trendingJobs.map((job) => (
-                <JobCard key={job._id} job={job} onLike={handleLike} />
+                <JobCard
+                  key={job._id}
+                  job={job}
+                  currentUser={currentUser}
+                  onLike={handleLike}
+                />
               ))
             ) : (
               <p>No trending jobs available</p>
@@ -199,7 +230,12 @@ const MainPage = () => {
         <div className="job-grid">
           {filteredGeneralJobs.length > 0 ? (
             filteredGeneralJobs.map((job) => (
-              <JobCard key={job._id} job={job} onLike={handleLike} />
+              <JobCard
+                key={job._id}
+                job={job}
+                currentUser={currentUser}
+                onLike={handleLike}
+              />
             ))
           ) : (
             <p>No jobs available</p>

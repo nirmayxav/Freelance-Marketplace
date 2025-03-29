@@ -11,6 +11,30 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Function to upload file using the Multer endpoint
+  const handleFileUpload = async (file) => {
+    const formData = new FormData();
+    formData.append("profilePhoto", file);
+    formData.append("userId", profile._id); // Assumes profile._id exists
+
+    try {
+      const response = await fetch("http://localhost:5001/api/user/uploadProfile", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      if (response.ok) {
+        // Update tempProfile with the returned URL from multer
+        handleChange("profilePhoto", data.profilePhoto);
+      } else {
+        console.error("Upload error: ", data.error);
+      }
+    } catch (error) {
+      console.error("Error uploading file: ", error);
+    }
+  };
+
+  // Fetch profile data from the server
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -40,11 +64,15 @@ const ProfilePage = () => {
       });
   }, [navigate]);
 
+  // Handle profile edit/save
   const handleEdit = () => {
     if (isEditing) {
+      // Optimistically update the UI immediately
+      setProfile(tempProfile);
+
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Authentication token missing.");
+        console.error("Authentication token missing.");
         return;
       }
 
@@ -59,14 +87,17 @@ const ProfilePage = () => {
         .then((res) => (res.ok ? res.json() : Promise.reject("Failed to update profile")))
         .then((updatedProfile) => {
           setProfile(updatedProfile);
-          setIsEditing(false);
+          setIsEditing(false); // Close modal after successful save
         })
-        .catch((err) => console.error("Error updating profile:", err));
+        .catch((err) => {
+          console.error("Error updating profile:", err);
+        });
     } else {
       setIsEditing(true);
     }
   };
 
+  // Handle input changes during editing
   const handleChange = (field, value) => {
     setTempProfile({ ...tempProfile, [field]: value });
   };
@@ -90,8 +121,8 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* First Row: Profile & Financial Overview */}
-      <div className="row">
+      {/* Main Container: Profile, About Me & Financial Overview in one row */}
+      <div className="main-container">
         {/* Profile Card */}
         <div className="profile-card">
           <div className="card-border-top"></div>
@@ -99,9 +130,19 @@ const ProfilePage = () => {
             <img src={profile.profilePhoto || "default-user.png"} alt="User" />
           </div>
           <span>{profile.name || "User"}</span>
-          <span className="job">{profile.skills ? profile.skills.join(", ") : "No skills listed"}</span>
+          <span className="job">
+            {profile.skills ? profile.skills.join(", ") : "No skills listed"}
+          </span>
           <span>Rating: {profile.rating || "N/A"} ⭐</span>
           <button onClick={handleEdit}>{isEditing ? "Save" : "Edit"}</button>
+        </div>
+
+        {/* About Me Section */}
+        <div className="about-me">
+          <h2>About Me</h2>
+          <p>{profile.bio || "Tell us about yourself..."}</p>
+          <h3>Skills:</h3>
+          <p>{profile.skills ? profile.skills.join(", ") : "No skills listed."}</p>
         </div>
 
         {/* Financial Overview */}
@@ -122,7 +163,7 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Second Row: Achievements */}
+      {/* Achievements Section */}
       <div className="achievements-section">
         <h2>Achievements</h2>
         <div className="achievements-container">
@@ -139,7 +180,7 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Third Row: Reviews */}
+      {/* Reviews Section */}
       <div className="reviews-section">
         <h2>Reviews Received</h2>
         <div className="reviews-card">
@@ -161,29 +202,33 @@ const ProfilePage = () => {
       {isEditing && (
         <div className="edit-modal">
           <h2>Edit Profile</h2>
-          <input
-            type="text"
-            value={tempProfile.name || ""}
-            onChange={(e) => handleChange("name", e.target.value)}
-            placeholder="Full Name"
-          />
-          <input
-            type="email"
-            value={tempProfile.email || ""}
-            onChange={(e) => handleChange("email", e.target.value)}
-            placeholder="Email"
-          />
+          <div
+            className="drag-drop-area"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const file = e.dataTransfer.files[0];
+              if (file) {
+                handleFileUpload(file);
+              }
+            }}
+          >
+            <p>Drag &amp; drop your photo here or click to select</p>
+            <input
+              type="file"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  handleFileUpload(file);
+                }
+              }}
+            />
+          </div>
           <input
             type="password"
             value={tempProfile.password || ""}
             onChange={(e) => handleChange("password", e.target.value)}
             placeholder="Password"
-          />
-          <input
-            type="text"
-            value={tempProfile.profilePhoto || ""}
-            onChange={(e) => handleChange("profilePhoto", e.target.value)}
-            placeholder="Profile Photo URL"
           />
           <textarea
             value={tempProfile.bio || ""}
@@ -191,6 +236,20 @@ const ProfilePage = () => {
             placeholder="Tell about yourself (max 100 words)"
             maxLength="100"
           />
+          <input
+            type="text"
+            value={tempProfile.skills ? tempProfile.skills.join(", ") : ""}
+            onChange={(e) =>
+              handleChange(
+                "skills",
+                e.target.value.split(",").map((s) => s.trim())
+              )
+            }
+            placeholder="Enter skills separated by commas"
+          />
+          <button onClick={handleEdit} className="save-btn">
+            Save
+          </button>
         </div>
       )}
     </div>

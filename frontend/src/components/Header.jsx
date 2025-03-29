@@ -34,8 +34,14 @@ const Header = () => {
         email: loginData.email.trim(),
         password: loginData.password.trim(),
       });
+      
       console.log('Login successful:', response.data);
-      localStorage.setItem('token', response.data.token);
+      const { token, user } = response.data;
+      
+      // Store token and user data
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
+  
       setShowLogin(false);
       navigate('/main');
     } catch (error) {
@@ -43,6 +49,7 @@ const Header = () => {
       setError(error.response?.data?.error || 'Login failed. Please try again.');
     }
   };
+  
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();

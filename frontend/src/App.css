@@ -693,7 +693,6 @@ footer.reveal a:hover {
 .share-btn {
   background: var(--glass);
   color: var(--primary);
-  border: 2px solid var(--primary);
   padding: 10px 14px;
   border-radius: 8px;
   font-size: 14px;
@@ -702,7 +701,6 @@ footer.reveal a:hover {
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0px 4px 8px rgba(0, 209, 255, 0.3);
 }
 
 .share-btn:hover {
@@ -772,8 +770,8 @@ footer.reveal a:hover {
 /* Apply Popup */
 .apply-popup {
   position: fixed;
-  width: 400px;
-  height: 500px;
+  width: 600px;
+  height: 400px;
   background: var(--dark);
   box-shadow: 0px 0px 20px rgba(0, 209, 255, 0.4);
   padding: 20px;

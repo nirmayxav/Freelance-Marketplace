@@ -1,44 +1,52 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const User = require('../models/User');  
-const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
-const crypto = require('crypto');
+const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 
 // Register new user
-router.post('/register', async (req, res) => {
+router.post("/register", async (req, res) => {
     const { username, email, password } = req.body;
 
     if (!username || !email || !password) {
-        return res.status(400).json({ error: 'Missing required fields.' });
+        return res.status(400).json({ error: "Missing required fields." });
     }
 
     try {
         // Check if user already exists
         const userExists = await User.findOne({ email: email.trim() });
         if (userExists) {
-            return res.status(400).json({ error: 'User already exists.' });
+            return res.status(400).json({ error: "User already exists." });
         }
 
         // Create new user
         const user = new User({
             username: username.trim(),
             email: email.trim(),
-            password: password, // Mongoose will hash it automatically
+            password, // Mongoose will hash it automatically
         });
 
         await user.save();
         console.log("User registered:", { email });
 
-        res.status(201).json({ message: 'User registered successfully' });
+        // 🔹 Automatically log in the user after registration
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+        res.status(201).json({
+            message: "User registered successfully",
+            token,
+            user: { id: user._id, username: user.username, email: user.email },
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error registering user.' });
+        res.status(500).json({ error: "Error registering user." });
     }
 });
 
 // Login a user
-router.post('/login', async (req, res) => {
+router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     try {
@@ -47,7 +55,7 @@ router.post('/login', async (req, res) => {
         console.log("User found:", user);
         if (!user) {
             console.error("User not found with email:", email);
-            return res.status(404).json({ error: 'Invalid email or password.' });
+            return res.status(404).json({ error: "Invalid email or password." });
         }
 
         // Compare input password with stored hashed password
@@ -55,52 +63,49 @@ router.post('/login', async (req, res) => {
         console.log("Password comparison result:", isMatch);
         if (!isMatch) {
             console.error("Password mismatch for email:", email);
-            return res.status(401).json({ error: 'Invalid email or password.' });
+            return res.status(401).json({ error: "Invalid email or password." });
         }
 
         // Generate JWT
-        const token = jwt.sign(
-            { id: user._id }, // Removed role
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' }
-        );
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-        res.status(200).json({ token, user: { id: user._id, username: user.username } });
+        res.status(200).json({
+            token,
+            user: { id: user._id, username: user.username, email: user.email },
+        });
     } catch (error) {
         console.error("Login error:", error);
-        res.status(500).json({ error: 'Error logging in.' });
+        res.status(500).json({ error: "Error logging in." });
     }
 });
 
 // Nodemailer Transporter
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: "gmail",
     auth: {
-        user: 'nirmay0604@gmail.com',
-        pass: 'kueu raga khvo bcdx'
-    }
+        user: "nirmay0604@gmail.com",
+        pass: "kueu raga khvo bcdx",
+    },
 });
 
 // Forgot Password Route
-const bcrypt = require('bcryptjs');
-
-router.post('/forgot-password', async (req, res) => {
+router.post("/forgot-password", async (req, res) => {
     const { email } = req.body;
 
     try {
         const user = await User.findOne({ email: email.trim() });
         if (!user) {
             console.error("❌ User not found:", email);
-            return res.status(404).json({ error: 'User not found.' });
+            return res.status(404).json({ error: "User not found." });
         }
 
         // Generate new temporary password
-        const newPassword = crypto.randomBytes(6).toString('hex');
+        const newPassword = crypto.randomBytes(6).toString("hex");
         console.log("🔑 New Password Generated:", newPassword);
 
         // ✅ Hash the new password before saving
         const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = newPassword;
+        user.password = hashedPassword;
         await user.save();
         console.log("✅ Password Updated in DB for:", email);
 
@@ -108,17 +113,15 @@ router.post('/forgot-password', async (req, res) => {
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: user.email,
-            subject: 'Password Reset Request',
+            subject: "Password Reset Request",
             text: `Your new password is: ${newPassword}\nPlease change it after logging in.`,
         });
 
-        res.json({ message: 'A new password has been sent to your email.' });
-
+        res.json({ message: "A new password has been sent to your email." });
     } catch (error) {
         console.error("❌ Forgot Password Error:", error);
-        res.status(500).json({ error: 'Failed to reset password.' });
+        res.status(500).json({ error: "Failed to reset password." });
     }
 });
-
 
 module.exports = router;

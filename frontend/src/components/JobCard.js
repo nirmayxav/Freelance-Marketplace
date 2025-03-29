@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:5001"); // Change to your backend URL
+const socket = io("http://localhost:5001"); 
 
-const JobCard = ({ job, currentUser }) => {
-  // ✅ Always call hooks at the top level
+const JobCard = ({ job, currentUser, onLike }) => {
   const [likes, setLikes] = useState(job?.likes || 0);
   const [showPopup, setShowPopup] = useState(false);
+  const [showSharePopup, setShowSharePopup] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [applyMessage, setApplyMessage] = useState("");
   const [counterOffer, setCounterOffer] = useState("");
 
   useEffect(() => {
     if (currentUser) {
-      socket.emit("register", currentUser._id);
+      // Use currentUser.id as stored in localStorage
+      socket.emit("register", currentUser.id);
     }
-
     return () => socket.disconnect();
-  }, [currentUser]); // ✅ Runs only when `currentUser` changes
+  }, [currentUser]);
 
   const handleLike = async () => {
     if (isLiked) return alert("You already liked this job!");
@@ -35,35 +35,75 @@ const JobCard = ({ job, currentUser }) => {
 
       setLikes((prevLikes) => prevLikes + 1);
       setIsLiked(true);
+      if (onLike) onLike(job._id);
     } catch (error) {
       alert(error.message);
     }
   };
 
   const handleApplySubmit = () => {
-    if (!currentUser || !currentUser._id) return alert("You must be logged in to apply.");
+    if (!currentUser || !currentUser.id)
+      return alert("You must be logged in to apply.");
     if (!job || !job._id) return alert("Invalid job data.");
     if (!applyMessage.trim()) return alert("Message cannot be empty.");
-
+  
     const applicationData = {
-      senderId: currentUser._id,
-      receiverId: job.postedBy, // Job poster
-      jobId: job._id,
-      message: applyMessage,
-      counterOffer: counterOffer || job.budget,
+      applicantId: currentUser.id,  // senderId → applicantId
+      clientId: job.client._id,     // receiverId → clientId
+      jobId: job._id,               // Correct as is
+      message: applyMessage,        // Correct as is
+      counterOffer: counterOffer || job.budget, // Correct as is
+      status: "pending",            // Ensure a default status is set
     };
-
-    socket.emit("sendApplication", applicationData);
-
-    alert("Application sent successfully!");
+    
+  
+    console.log("🚀 Emitting sendApplication event with data:", applicationData);
+  
+    if (!socket) {
+      console.error("❌ Socket.io is not initialized!");
+      return;
+  }
+  socket.emit("sendApplication", applicationData);
+    socket.emit("createConversation", {
+      senderId: currentUser.id,
+      receiverId: job.client._id,
+    });
+  
+    alert("Application sent successfully! Chat has been created.");
     setShowPopup(false);
     setApplyMessage("");
     setCounterOffer("");
   };
+  
+ 
+
+  
+  const handleShare = () => {
+    setShowSharePopup(true);
+  };
+
+  const shareToWhatsApp = () => {
+    const text = `Check out this job: ${job?.title}\n${job?.description}`;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
+  const shareToX = () => {
+    const text = `Check out this job: ${job?.title}\n${job?.description}`;
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
+  };
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    alert("Job link copied to clipboard!");
+  };
 
   return (
     <div className="job-card">
-      {job?.fileAttachment && <img src={job.fileAttachment} alt={job.title} className="job-image" />}
+      {job?.fileAttachment && (
+        <img src={job.fileAttachment} alt={job.title} className="job-image" />
+      )}
 
       <div className="job-content">
         <h3>{job?.title}</h3>
@@ -85,20 +125,55 @@ const JobCard = ({ job, currentUser }) => {
           <button className="like-btn" onClick={handleLike}>
             {isLiked ? "✅ Liked" : "❤️ Like"}
           </button>
-          <button className="bookmark-btn">📌</button>
-          <button className="share-btn">📤 Share</button>
+          <button className="share-btn" onClick={handleShare}>
+            📤 Share
+          </button>
         </div>
 
-        <button className="apply-btn" onClick={() => setShowPopup(true)}>Apply Now</button>
+        <button className="apply-btn" onClick={() => setShowPopup(true)}>
+          Apply Now
+        </button>
       </div>
 
       {showPopup && (
         <div className="apply-popup">
           <h3>Apply for {job?.title}</h3>
-          <textarea placeholder="Write your message..." value={applyMessage} onChange={(e) => setApplyMessage(e.target.value)} />
-          <input type="number" placeholder="Counter Offer (Optional)" value={counterOffer} onChange={(e) => setCounterOffer(e.target.value)} />
+          <textarea
+            placeholder="Write your message..."
+            value={applyMessage}
+            onChange={(e) => setApplyMessage(e.target.value)}
+          />
+          <input
+            type="number"
+            placeholder="Counter Offer (Optional)"
+            value={counterOffer}
+            onChange={(e) => setCounterOffer(e.target.value)}
+          />
           <button onClick={handleApplySubmit}>Submit</button>
-          <button style={{ background: "#ff00ff" }} onClick={() => setShowPopup(false)}>Cancel</button>
+          <button
+            style={{ background: "#ff00ff" }}
+            onClick={() => setShowPopup(false)}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {showSharePopup && (
+        <div
+          className="share-popup"
+          style={{ background: "var(--glass)", padding: "1rem", borderRadius: "8px" }}
+        >
+          <h3>Share this Job</h3>
+          <button onClick={shareToWhatsApp}>Share to WhatsApp</button>
+          <button onClick={shareToX}>Share to X</button>
+          <button onClick={copyLink}>Copy Link</button>
+          <button
+            style={{ background: "#ff00ff" }}
+            onClick={() => setShowSharePopup(false)}
+          >
+            Close
+          </button>
         </div>
       )}
     </div>

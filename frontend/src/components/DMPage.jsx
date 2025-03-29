@@ -6,10 +6,11 @@ import './DMPage.css';
 const socket = io("http://localhost:5001"); // Adjust if backend is on another host
 
 const DMPage = ({ currentUser }) => {
-  const navigate = useNavigate();
+  const navigate = useNavigate();/*  */
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [dmList, setDmList] = useState([]); // List of DM users
+  const [conversations, setConversations] = useState([]);
   const messagesEndRef = useRef(null);
 
   // Scroll to latest message
@@ -17,12 +18,12 @@ const DMPage = ({ currentUser }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Register current user with socket
+  // Register current user with socket and set up listeners
   useEffect(() => {
     if (currentUser?._id) {
       socket.emit("register", currentUser._id);
     }
-
+    
     // Listen for new messages
     socket.on("receiveMessage", (message) => {
       setMessages((prev) => [...prev, message]);
@@ -33,16 +34,26 @@ const DMPage = ({ currentUser }) => {
       }
     });
 
-    // Add new contact to DM list
+    // Listen for DM list updates
     socket.on("addToDM", (newUser) => {
       if (!dmList.some(user => user._id === newUser._id)) {
         setDmList((prev) => [...prev, newUser]);
       }
     });
 
+    // Listen for new conversation events
+    socket.on("newConversation", (conversation) => {
+      // Add conversation to dmList if not already present
+      const otherParticipant = conversation.participants.find(u => u !== currentUser._id);
+      if (!dmList.some(user => user._id === otherParticipant)) {
+        setDmList((prev) => [...prev, { _id: conversation._id, participants: conversation.participants }]);
+      }
+    });
+
     return () => {
       socket.off("receiveMessage");
       socket.off("addToDM");
+      socket.off("newConversation");
     };
   }, [currentUser, dmList]);
 

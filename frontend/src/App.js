@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Header from './components/Header';
 import MainSection from './components/MainSection'; 
@@ -12,6 +12,8 @@ import PostJob from './components/PostJob';
 import ContactUs from './components/ContactUs';
 import AboutUs from './components/AboutUs';
 import Footer from './components/Footer'; 
+import React, { useState, useEffect } from "react";
+
 
 
 
@@ -19,6 +21,13 @@ import Footer from './components/Footer';
 
 
 const App = () => {
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user"));
+    if (storedUser) setCurrentUser(storedUser);
+  }, []);
+
   return (
     <Router>
       <div className="app">
