@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { io } from "socket.io-client";
 
-const socket = io("http://localhost:5001"); 
+// Ensure the socket instance is imported from a common module
+import { socket } from "./socket"; // e.g., from
 
 const JobCard = ({ job, currentUser, onLike }) => {
   const [likes, setLikes] = useState(job?.likes || 0);
@@ -47,35 +47,44 @@ const JobCard = ({ job, currentUser, onLike }) => {
     if (!job || !job._id) return alert("Invalid job data.");
     if (!applyMessage.trim()) return alert("Message cannot be empty.");
   
-    const applicationData = {
-      applicantId: currentUser.id,  // senderId → applicantId
-      clientId: job.client._id,     // receiverId → clientId
-      jobId: job._id,               // Correct as is
-      message: applyMessage,        // Correct as is
-      counterOffer: counterOffer || job.budget, // Correct as is
-      status: "pending",            // Ensure a default status is set
-    };
-    
+    // Ensure socket is connected
+    if (!socket.connected) {
+      console.warn("⚠️ Socket not connected. Connecting now...");
+      socket.connect(); // Manually connect if not already connected
+    }
   
-    console.log("🚀 Emitting sendApplication event with data:", applicationData);
+    // Wait for socket to connect before emitting events
+    socket.once("connect", () => {
+      console.log("✅ Socket connected, proceeding with application...");
   
-    if (!socket) {
-      console.error("❌ Socket.io is not initialized!");
-      return;
-  }
-  socket.emit("sendApplication", applicationData);
-    socket.emit("createConversation", {
-      senderId: currentUser.id,
-      receiverId: job.client._id,
+      const applicationData = {
+        applicantId: currentUser.id,
+        clientId: job.client._id,
+        jobId: job._id,
+        message: applyMessage,
+        counterOffer: counterOffer || job.budget,
+        status: "pending",
+      };
+  
+      console.log("🚀 Emitting sendApplication event:", applicationData);
+      socket.emit("sendApplication", applicationData);
+  
+      console.log("📩 Emitting createConversation event:", {
+        senderId: currentUser.id,
+        receiverId: job.client._id,
+      });
+      socket.emit("createConversation", {
+        senderId: currentUser.id,
+        receiverId: job.client._id,
+      });
+  
+      alert("Application sent successfully! Chat has been created.");
+      setShowPopup(false);
+      setApplyMessage("");
+      setCounterOffer("");
     });
-  
-    alert("Application sent successfully! Chat has been created.");
-    setShowPopup(false);
-    setApplyMessage("");
-    setCounterOffer("");
   };
-  
- 
+
 
   
   const handleShare = () => {

@@ -18,44 +18,44 @@ const DMPage = ({ currentUser }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Register current user with socket and set up listeners
   useEffect(() => {
     if (currentUser?._id) {
-      socket.emit("register", currentUser._id);
+        socket.emit("register", currentUser._id);
     }
-    
-    // Listen for new messages
+
     socket.on("receiveMessage", (message) => {
-      setMessages((prev) => [...prev, message]);
+        setMessages((prev) => [...prev, message]);
 
-      // If sender isn't in DM list, add them
-      if (!dmList.some(user => user._id === message.sender)) {
-        socket.emit("addToDM", message.sender);
-      }
+        // Ensure sender is in DM list
+        if (!dmList.some(user => user._id === message.sender)) {
+            socket.emit("addToDM", message.sender);
+        }
     });
 
-    // Listen for DM list updates
     socket.on("addToDM", (newUser) => {
-      if (!dmList.some(user => user._id === newUser._id)) {
-        setDmList((prev) => [...prev, newUser]);
-      }
+        if (!dmList.some(user => user._id === newUser._id)) {
+            setDmList((prev) => [...prev, newUser]);
+        }
     });
 
-    // Listen for new conversation events
+    // Listen for new conversation
     socket.on("newConversation", (conversation) => {
-      // Add conversation to dmList if not already present
-      const otherParticipant = conversation.participants.find(u => u !== currentUser._id);
-      if (!dmList.some(user => user._id === otherParticipant)) {
-        setDmList((prev) => [...prev, { _id: conversation._id, participants: conversation.participants }]);
-      }
+        console.log("🆕 New conversation received:", conversation);
+        setConversations((prev) => [...prev, conversation]);
+
+        const otherParticipant = conversation.participants.find(u => u !== currentUser._id);
+        if (!dmList.some(user => user._id === otherParticipant)) {
+            setDmList((prev) => [...prev, { _id: otherParticipant }]);
+        }
     });
 
     return () => {
-      socket.off("receiveMessage");
-      socket.off("addToDM");
-      socket.off("newConversation");
+        socket.off("receiveMessage");
+        socket.off("addToDM");
+        socket.off("newConversation");
     };
-  }, [currentUser, dmList]);
+}, [currentUser, dmList]);
+
 
   // Send a message
   const handleSend = () => {

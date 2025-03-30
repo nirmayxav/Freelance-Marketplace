@@ -113,21 +113,26 @@ io.on("connection", (socket) => {
     console.log("🔄 Received createConversation event:", { senderId, receiverId });
 
     try {
-      let conversation = await Conversation.findOne({ participants: { $all: [senderId, receiverId] } });
+        // Check if conversation already exists
+        let conversation = await Conversation.findOne({ participants: { $all: [senderId, receiverId] } });
 
-      if (!conversation) {
-        conversation = new Conversation({ participants: [senderId, receiverId], messages: [] });
-        await conversation.save();
-      }
+        if (conversation) {
+            console.log("⚠️ Conversation already exists:", conversation);
+        } else {
+            // Create a new conversation if it doesn’t exist
+            conversation = new Conversation({ participants: [senderId, receiverId], messages: [] });
+            await conversation.save();
+            console.log("✅ New Conversation created:", conversation);
+        }
 
-      console.log("✅ Conversation created:", conversation);
-
-      io.to(senderId).emit("newConversation", conversation);
-      io.to(receiverId).emit("newConversation", conversation);
+        // Emit the event to both users
+        io.to(senderId).emit("newConversation", conversation);
+        io.to(receiverId).emit("newConversation", conversation);
     } catch (error) {
-      console.error("❌ Error creating conversation:", error);
+        console.error("❌ Error creating conversation:", error);
     }
-  });
+});
+
 
   socket.on("disconnect", () => {
     Object.keys(activeUsers).forEach((userId) => {
