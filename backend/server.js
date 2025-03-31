@@ -16,6 +16,9 @@ const Conversation = require("./models/Conversation");
 const authRoutes = require("./routes/authRoutes");
 const jobRoutes = require("./routes/jobRoutes");
 const userRoutes = require("./routes/userRoutes");
+const convoRoutes = require('./routes/convoRoutes');
+
+
 
 dotenv.config();
 
@@ -40,142 +43,177 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/user", userRoutes);
-const activeUsers = {}; // Track active users
+app.use("/api/conversations", convoRoutes);
+const activeUsers = new Map();
 
 io.on("connection", (socket) => {
   console.log("🔵 User connected:", socket.id);
 
-  socket.on("register", (userId) => {
-    console.log("✅ Registered user:", userId);
-    activeUsers[userId] = socket.id;
+  // Authentication
+  socket.on("authenticate", (token) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+      if (err) {
+        console.error("❌ Authentication failed:", err);
+        socket.emit("authentication_error", "Invalid token");
+        return;
+      }
+      console.log("✅ Authenticated user:", decoded.userId);
+      activeUsers.set(decoded.userId, socket.id);
+      socket.emit("authenticated", { userId: decoded.userId });
+    });
   });
 
-  socket.on("sendApplication", async ({ applicantId, clientId, jobId, message, counterOffer }) => {
-    console.log("📩 Received sendApplication event:", { applicantId, clientId, jobId, message, counterOffer });
-
+  // Handle job applications
+  socket.on("sendApplication", async (data) => {
+    const { applicantId, clientId, jobId, message, counterOffer } = data;
     try {
-      if (!applicantId || !clientId || !jobId || !message) {
-        console.error("❌ Missing required fields:", { applicantId, clientId, jobId, message });
-        return;
-      }
-
-      // Validate ObjectId format before conversion
-      if (
-        !mongoose.Types.ObjectId.isValid(applicantId) ||
-        !mongoose.Types.ObjectId.isValid(clientId) ||
-        !mongoose.Types.ObjectId.isValid(jobId)
-      ) {
-        console.error("❌ Invalid ObjectId format:", { applicantId, clientId, jobId });
-        return;
-      }
-
+      // 1. Save the application
       const newApplication = new Application({
         applicantId: new mongoose.Types.ObjectId(applicantId),
         clientId: new mongoose.Types.ObjectId(clientId),
         jobId: new mongoose.Types.ObjectId(jobId),
         message,
         counterOffer,
-        status: "pending", // Default status
+        status: "pending"
       });
+      const savedApp = await newApplication.save();
 
-      await newApplication.save();
-
-      console.log("✅ Job application saved:", newApplication);
-
-      if (activeUsers[clientId]) {
-        io.to(activeUsers[clientId]).emit("newApplication", { applicantId, jobId, message, counterOffer, status: "pending" });
+      // 2. Find or create conversation using sorted participants
+      const participants = [applicantId, clientId].sort();
+      let conversation = await Conversation.findOne({
+        participants: { $all: participants, $size: participants.length }
+      });
+      if (!conversation) {
+        conversation = new Conversation({ participants });
+        await conversation.save();
       }
-    } catch (error) {
-      console.error("❌ Error processing application:", error);
-    }
-  });
 
-  socket.on("sendMessage", async ({ sender, receiver, message }) => {
-    console.log("💬 Received sendMessage event:", { sender, receiver, message });
-
-    try {
-      const chatMessage = new Chat({ sender, receiver, message });
+      // 3. Create automatic chat message with application details
+      const chatMessage = new Chat({
+        conversationId: conversation._id,
+        sender: applicantId,
+        receiver: clientId,
+        message: `📄 Job Application: ${message}`,
+        isApplication: true,
+        jobId: jobId,
+        counterOffer: counterOffer,
+        timestamp: new Date()
+      });
       await chatMessage.save();
 
-      console.log("✅ Chat message saved:", chatMessage);
+      // Update conversation with the new message
+      await Conversation.findByIdAndUpdate(conversation._id, {
+        $push: { messages: chatMessage._id },
+        lastMessage: chatMessage._id,
+        updatedAt: new Date()
+      });
 
-      io.emit("receiveMessage", chatMessage);
-
-      if (activeUsers[receiver]) {
-        io.to(activeUsers[receiver]).emit("addToDM", sender);
+      // 4. Notify the client if connected
+      const clientSocketId = activeUsers.get(clientId);
+      if (clientSocketId) {
+        io.to(clientSocketId).emit("newApplication", {
+          application: savedApp,
+          chat: chatMessage
+        });
       }
+
+      // 5. Confirm success to the applicant
+      socket.emit("application_success", {
+        message: "Application submitted!",
+        chat: chatMessage
+      });
     } catch (error) {
-      console.error("❌ Error sending message:", error);
+      console.error("Application error:", error);
+      socket.emit("application_error", error.message);
     }
   });
 
-  socket.on("createConversation", async ({ senderId, receiverId }) => {
-    console.log("🔄 Received createConversation event:", { senderId, receiverId });
-
+  // Handle private messages
+  socket.on("sendMessage", async (data) => {
+    const { conversationId, sender, receiver, message } = data;
+    if (!conversationId || !sender || !receiver || !message) {
+      console.error("❌ Missing message fields");
+      return;
+    }
     try {
-        // Check if conversation already exists
-        let conversation = await Conversation.findOne({ participants: { $all: [senderId, receiverId] } });
+      // Create and save the chat message with conversationId
+      const chatMessage = new Chat({
+        conversationId,
+        sender,
+        receiver,
+        message,
+        timestamp: new Date()
+      });
+      const savedMessage = await chatMessage.save();
+      console.log("💬 Message saved:", savedMessage._id);
 
-        if (conversation) {
-            console.log("⚠️ Conversation already exists:", conversation);
-        } else {
-            // Create a new conversation if it doesn’t exist
-            conversation = new Conversation({ participants: [senderId, receiverId], messages: [] });
-            await conversation.save();
-            console.log("✅ New Conversation created:", conversation);
-        }
+      // Update the conversation document with the new message
+      await Conversation.findByIdAndUpdate(conversationId, {
+        $push: { messages: savedMessage._id },
+        lastMessage: savedMessage._id,
+        updatedAt: new Date()
+      });
 
-        // Emit the event to both users
-        io.to(senderId).emit("newConversation", conversation);
-        io.to(receiverId).emit("newConversation", conversation);
-    } catch (error) {
-        console.error("❌ Error creating conversation:", error);
-    }
-});
-
-
-  socket.on("disconnect", () => {
-    Object.keys(activeUsers).forEach((userId) => {
-      if (activeUsers[userId] === socket.id) {
-        delete activeUsers[userId];
+      // Emit the message to receiver and sender
+      const receiverSocketId = activeUsers.get(receiver);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit("receiveMessage", savedMessage);
       }
-    });
+      const senderSocketId = activeUsers.get(sender);
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("receiveMessage", savedMessage);
+      }
+    } catch (error) {
+      console.error("❌ Message error:", error);
+    }
   });
-});
 
-// Multer Setup for Profile Picture Upload
-const storage = multer.diskStorage({
-  destination: "./uploads/",
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
-const upload = multer({ storage });
+  // Handle conversation creation
+  socket.on("createConversation", async (data) => {
+    console.log("📥 Received createConversation event:", data);
+    const { senderId, receiverId } = data;
+    if (!senderId || !receiverId) {
+      console.error("❌ Missing sender or receiver ID");
+      socket.emit("conversation_error", "Invalid sender or receiver ID");
+      return;
+    }
+    try {
+      // Sort to ensure unique ordering
+      const participants = [senderId, receiverId].sort();
+      let conversation = await Conversation.findOne({
+        participants: { $all: participants, $size: participants.length }
+      });
+      if (!conversation) {
+        console.log("🔄 Creating new conversation...");
+        conversation = new Conversation({ participants });
+        await conversation.save();
+        console.log("✅ Conversation saved:", conversation._id);
+      } else {
+        console.log("ℹ️ Conversation already exists:", conversation._id);
+      }
+      socket.emit("conversation_success", { 
+        message: "Conversation created!",
+        conversationId: conversation._id 
+      });
+    } catch (error) {
+      console.error("❌ Conversation error:", error);
+      socket.emit("conversation_error", error.message);
+    }
+  });
 
-// API Endpoint for Profile Picture Upload
-app.post("/api/user/uploadProfile", upload.single("profilePhoto"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-
-    const userId = req.body.userId;
-    if (!userId) return res.status(400).json({ error: "User ID is required" });
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    user.profilePhoto = `/uploads/${req.file.filename}`;
-    await user.save();
-
-    io.emit("profileUpdated", { userId, profilePhoto: user.profilePhoto });
-
-    res.json({ message: "Profile picture updated successfully", profilePhoto: user.profilePhoto });
-  } catch (error) {
-    console.error("Error uploading profile picture:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
+  // Handle disconnection
+  socket.on("disconnect", () => {
+    for (let [userId, socketId] of activeUsers.entries()) {
+      if (socketId === socket.id) {
+        activeUsers.delete(userId);
+        console.log("🔴 User disconnected:", userId);
+        break;
+      }
+    }
+  });
 });
 
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

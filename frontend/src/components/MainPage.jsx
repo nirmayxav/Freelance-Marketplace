@@ -2,11 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import JobCard from "./JobCard"; // Ensure this path is correct
 import "./MainPage.css";
-import io from "socket.io-client";
-
-const socket = io("http://localhost:5001");
-
-window.socket = socket; // Make socket globally accessible for debugging
+import { socket } from "./socket"; // e.g., from
 
 const MainPage = () => {
   const navigate = useNavigate();

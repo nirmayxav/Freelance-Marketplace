@@ -1,137 +1,213 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import io from "socket.io-client";  // Import socket.io
+import io from 'socket.io-client';
 import './DMPage.css';
 
-const socket = io("http://localhost:5001"); // Adjust if backend is on another host
-
-const DMPage = ({ currentUser }) => {
-  const navigate = useNavigate();/*  */
+const DMPage = () => {
+  const [conversations, setConversations] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [dmList, setDmList] = useState([]); // List of DM users
-  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
+  const navigate = useNavigate();
+  const [socket, setSocket] = useState(null);
 
-  // Scroll to latest message
+  const currentUser = JSON.parse(localStorage.getItem('user'));
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const token = localStorage.getItem('token');
+    const newSocket = io('http://localhost:5001', {
+      auth: { token },
+      transports: ['websocket']
+    });
+    setSocket(newSocket);
+
+    newSocket.on('receiveMessage', (message) => {
+      // Update only if the message belongs to the current conversation
+      if (selectedConversation?._id === message.conversationId) {
+        setMessages(prev => [...prev, message]);
+      }
+    });
+
+    return () => newSocket.disconnect();
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        const res = await fetch('http://localhost:5001/api/conversations', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        const { data } = await res.json();
+        setConversations(data);
+      } catch (err) {
+        console.error('Error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchConversations();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedConversation) return;
+    const fetchMessages = async () => {
+      try {
+        const res = await fetch(
+          `http://localhost:5001/api/conversations/${selectedConversation._id}/messages`,
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+        const { data } = await res.json();
+        setMessages(data);
+      } catch (err) {
+        console.error('Error:', err);
+      }
+    };
+    fetchMessages();
+  }, [selectedConversation]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  useEffect(() => {
-    if (currentUser?._id) {
-        socket.emit("register", currentUser._id);
-    }
-
-    socket.on("receiveMessage", (message) => {
-        setMessages((prev) => [...prev, message]);
-
-        // Ensure sender is in DM list
-        if (!dmList.some(user => user._id === message.sender)) {
-            socket.emit("addToDM", message.sender);
-        }
-    });
-
-    socket.on("addToDM", (newUser) => {
-        if (!dmList.some(user => user._id === newUser._id)) {
-            setDmList((prev) => [...prev, newUser]);
-        }
-    });
-
-    // Listen for new conversation
-    socket.on("newConversation", (conversation) => {
-        console.log("🆕 New conversation received:", conversation);
-        setConversations((prev) => [...prev, conversation]);
-
-        const otherParticipant = conversation.participants.find(u => u !== currentUser._id);
-        if (!dmList.some(user => user._id === otherParticipant)) {
-            setDmList((prev) => [...prev, { _id: otherParticipant }]);
-        }
-    });
-
-    return () => {
-        socket.off("receiveMessage");
-        socket.off("addToDM");
-        socket.off("newConversation");
-    };
-}, [currentUser, dmList]);
-
-
-  // Send a message
-  const handleSend = () => {
-    if (newMessage.trim()) {
-      const message = {
-        sender: currentUser._id,
-        receiver: "receiverUserId", // Replace with selected user's ID
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+    try {
+      // Optimistically add message using the same field name "message"
+      const tempMessage = {
+        _id: Date.now().toString(),
+        sender: currentUser, // should include _id, username, image etc.
         message: newMessage,
+        timestamp: new Date(),
+        isOptimistic: true
       };
+      setMessages(prev => [...prev, tempMessage]);
 
-      socket.emit("sendMessage", message);
+      const res = await fetch(
+        `http://localhost:5001/api/conversations/${selectedConversation._id}/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          },
+          body: JSON.stringify({ message: newMessage })
+        }
+      );
+
+      const { data } = await res.json();
+      // Replace optimistic message with the saved one
+      setMessages(prev => prev.filter(m => !m.isOptimistic).concat(data));
+
+      // Emit via socket to update the other party in real time
+      socket?.emit('sendMessage', {
+        conversationId: selectedConversation._id,
+        sender: currentUser._id,
+        receiver: selectedConversation?.participants?.find(p => p._id !== currentUser._id)?._id,
+        message: newMessage
+      });
+
       setNewMessage('');
+    } catch (err) {
+      console.error('Error:', err);
+      setMessages(prev => prev.filter(m => !m.isOptimistic));
     }
   };
 
+  // Accept client button logic: remove other conversations with same jobId and navigate
+  const handleAcceptClient = () => {
+    // Assume jobId is stored in lastMessage of a conversation (if available)
+    const jobId = selectedConversation?.lastMessage?.jobId;
+    if (jobId) {
+      // Filter out any conversation (other than the selected one) that has the same jobId
+      const updatedConversations = conversations.filter(conv => {
+        if (conv._id === selectedConversation._id) return true;
+        return conv.lastMessage?.jobId?.toString() !== jobId.toString();
+      });
+      setConversations(updatedConversations);
+    }
+    // Navigate to CreateTimeline component (pass conversation or job data via state if needed)
+    navigate('/createtimeline', { state: { conversation: selectedConversation } });
+  };
+
+  if (!currentUser) {
+    navigate('/login');
+    return null;
+  }
+
+  if (loading) return <div className="loading">Loading conversations...</div>;
+
   return (
     <div className="dm-container">
-      {/* Navigation */}
-      <div className="header">
-        <img src="images/image10.png" alt="User" />
-        <div className="header-right">
-          <span onClick={() => navigate('/homes')}>Home</span>
-          <span onClick={() => navigate('/contact')}>Contact Us</span>
-          <span onClick={() => navigate('/abt')}>About</span>
-          <span onClick={() => navigate('/ong-proj')}>Ongoing Projects</span>
-          <span onClick={() => navigate('/post')}>Post a Job</span>
-          <span>Settings</span>
-        </div>
-      </div>
-
-      {/* Sidebar with DM List */}
-      <div className="dm-sidebar">
+      <div className="conversation-list">
         <h2>Conversations</h2>
-        {dmList.map((user) => (
-          <div key={user._id} className="active-chat">
-            <div className="user-avatar">{user.name[0]}</div>
-            <div className="user-info">
-              <h3>{user.name}</h3>
-              <p>{user.role}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Chat Window */}
-      <div className="chat-window">
-        <div className="messages-container">
-          {messages.map((msg, index) => (
-            <div key={index} className={`message ${msg.sender === currentUser._id ? 'sent' : 'received'}`}>
-              <div className="message-content">
-                <div className="message-header">
-                  <span className="sender">{msg.sender === currentUser._id ? "You" : "Client"}</span>
-                  <span className="timestamp">{new Date().toLocaleTimeString()}</span>
-                </div>
-                <p>{msg.message}</p>
+        {conversations.map(conv => {
+          const otherUser = conv.participants.find(p => p?._id !== currentUser._id);
+          return (
+            <div 
+              key={conv._id}
+              className={`conversation-item ${selectedConversation?._id === conv._id ? 'active' : ''}`}
+              onClick={() => setSelectedConversation(conv)}
+            >
+              <img src={otherUser?.image || '/default-user.png'} alt={otherUser?.username} />
+              <div className="conversation-info">
+                <h3>{otherUser?.username || 'Unknown User'}</h3>
+                <p>{conv.lastMessage?.message?.substring(0, 30) || 'No messages'}</p>
               </div>
             </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Message Input */}
-        <div className="message-input">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-          />
-          <button onClick={handleSend}>
-            <svg viewBox="0 0 24 24" width="24" height="24">
-              <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-            </svg>
-          </button>
-        </div>
+          );
+        })}
+      </div>
+      <div className="chat-area">
+        {selectedConversation ? (
+          <>
+            <div className="chat-header">
+              <h3>
+                {selectedConversation?.participants?.find(p => p._id !== currentUser._id)?.username}
+              </h3>
+              {selectedConversation?.lastMessage?.jobId && (
+                <button className="accept-button" onClick={handleAcceptClient}>
+                  Accept Client
+                </button>
+              )}
+            </div>
+            <div className="messages-container">
+              {messages.map(msg => {
+                if (!msg) return null;
+                // Use optional chaining for sender
+                const senderId = msg.sender ? (typeof msg.sender === 'object' ? msg.sender._id : msg.sender) : '';
+                return (
+                  <div 
+                    key={msg._id}
+                    className={`message ${senderId === currentUser._id ? 'sent' : 'received'}`}
+                  >
+                    <div className="message-content">
+                      <p>{msg.message}</p>
+                      <span className="timestamp">
+                        {new Date(msg.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+            <div className="message-input">
+              <input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              />
+              <button onClick={handleSendMessage}>Send</button>
+            </div>
+          </>
+        ) : (
+          <div className="no-conversation">
+            <p>Select a conversation to start chatting</p>
+          </div>
+        )}
       </div>
     </div>
   );
