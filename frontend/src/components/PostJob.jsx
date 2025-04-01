@@ -19,7 +19,6 @@ const PostJob = () => {
   const navigateToHome = () => navigate('/homes');
   const navigateToChat = () => navigate('/chat');
   const navigateToproj = () => navigate('/ong-proj');
-  const navigateToPost = () => navigate('/post');
   const navigateContact = () => navigate('/contact');
   const navigateToAbout = () => navigate('/abt');
 

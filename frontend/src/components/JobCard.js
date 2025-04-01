@@ -60,7 +60,7 @@ const JobCard = ({ job, currentUser, onLike }) => {
       const applicationData = {
         applicantId: currentUser.id,
         clientId: job.client._id,
-        jobId: job._id,
+        jobId: job._id, // Include jobId in the application data
         message: applyMessage,
         counterOffer: counterOffer || job.budget,
         status: "pending",
@@ -72,10 +72,12 @@ const JobCard = ({ job, currentUser, onLike }) => {
       console.log("📩 Emitting createConversation event:", {
         senderId: currentUser.id,
         receiverId: job.client._id,
+        jobId: job._id, // Include jobId in the create conversation event
       });
       socket.emit("createConversation", {
         senderId: currentUser.id,
         receiverId: job.client._id,
+        jobId: job._id, // Send jobId when creating conversation
       });
   
       alert("Application sent successfully! Chat has been created.");
@@ -84,8 +86,7 @@ const JobCard = ({ job, currentUser, onLike }) => {
       setCounterOffer("");
     });
   };
-
-
+  
   
   const handleShare = () => {
     setShowSharePopup(true);

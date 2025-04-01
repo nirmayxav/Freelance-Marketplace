@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from "react";
 import './AboutContact.css';
 import { useNavigate } from 'react-router-dom';
 
 const AboutUs = () => {
   const navigate = useNavigate();
+    const [currentUser, setCurrentUser] = useState(null);
   
     const navigateToHome = () => {
       navigate('/homes'); // Navigate to the profile page
@@ -22,7 +23,13 @@ const AboutUs = () => {
       navigate('/contact'); // Navigate to the chat page
     };
     const navigateToAbout = () => {
-      navigate('/abt'); // Navigate to the chat page
+      navigate('/profile'); // Navigate to the chat page
+    };
+    const handleLogout = () => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      setCurrentUser(null);
+      navigate("/");
     };
   return (
     <div className="about-contact-container">
@@ -31,13 +38,15 @@ const AboutUs = () => {
         
         <div className="header-right">
           <span onClick={navigateToHome}>Home</span>
-          <span onClick={navigateContact}>Contact Us</span>
-          <span onClick={navigateToAbout}>About</span>
+          <span onClick={navigateToAbout}>Profile</span>
           <span onClick={navigateToChat}>Chat</span>
-          <span onClick={navigateToproj}>Ongoing Projects</span>
           <span onClick={navigateToPost}>Post a Job</span>
+          <span onClick={navigateToproj}>Ongoing Projects</span>
+          <span onClick={navigateContact}>Contact Us</span>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
 
-          <span >Settings</span>
         </div>
       </div>
 
@@ -75,19 +84,19 @@ const AboutUs = () => {
           <h2>🚀 The Team</h2>
           <div className="team-grid">
             <div className="team-member">
-              <div className="avatar">JD</div>
-              <h3>John Doe</h3>
-              <p>CEO & Founder</p>
+              <div className="avatar">NB</div>
+              <h3>Nirmay Bhavsar</h3>
+              <p>Founder</p>
             </div>
             <div className="team-member">
-              <div className="avatar">SP</div>
-              <h3>Sarah Parker</h3>
-              <p>CTO</p>
+              <div className="avatar">PC</div>
+              <h3>Purva Chopdekar</h3>
+              <p>Founder</p>
             </div>
             <div className="team-member">
-              <div className="avatar">MT</div>
-              <h3>Mike Taylor</h3>
-              <p>Blockchain Lead</p>
+              <div className="avatar">AJ</div>
+              <h3>Aaron Johns</h3>
+              <p>Supervisor</p>
             </div>
           </div>
         </div>

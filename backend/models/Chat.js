@@ -24,18 +24,14 @@ const ChatSchema = new mongoose.Schema({
     type: Boolean, 
     default: false 
   },
-  jobId: {          
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Job' 
-  },
-  counterOffer: {    
+  counterOffer: {          
     type: Number 
   },
   timestamp: { 
     type: Date, 
     default: Date.now 
-  }
+  },
+  jobId: { type: mongoose.Schema.Types.ObjectId, ref: 'Job', required: true } // Added jobId
 });
 
-const Chat = mongoose.model('Chat', ChatSchema);
-module.exports = Chat;
+module.exports = mongoose.model('Chat', ChatSchema);

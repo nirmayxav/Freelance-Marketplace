@@ -4,15 +4,41 @@ import io from 'socket.io-client';
 import './DMPage.css';
 
 const DMPage = () => {
+
+  const navigateToHome = () => {
+    navigate('/homes'); // Navigate to the profile page
+  };
+
+  const navigateToChat = () => {
+    navigate('/abt'); // Navigate to the chat page
+  };
+  const navigateToproj = () => {
+    navigate('/ong-proj'); // Navigate to the chat page
+  };
+  const navigateToPost = () => {
+    navigate('/post'); // Navigate to the chat page
+  };
+  const navigateContact = () => {
+    navigate('/contact'); // Navigate to the chat page
+  };
+  const navigateToAbout = () => {
+    navigate('/profile'); // Navigate to the chat page
+  };
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
+  };
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
-  const navigate = useNavigate();
   const [socket, setSocket] = useState(null);
 
+  // Assume currentUser object includes a role field ("client" or "applicant")
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
@@ -24,7 +50,6 @@ const DMPage = () => {
     setSocket(newSocket);
 
     newSocket.on('receiveMessage', (message) => {
-      // Update only if the message belongs to the current conversation
       if (selectedConversation?._id === message.conversationId) {
         setMessages(prev => [...prev, message]);
       }
@@ -71,19 +96,26 @@ const DMPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Log every time selectedConversation changes
+  useEffect(() => {
+    if (selectedConversation) {
+      console.log('Selected Conversation:', selectedConversation);
+    }
+  }, [selectedConversation]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
+  
     try {
-      // Optimistically add message using the same field name "message"
       const tempMessage = {
         _id: Date.now().toString(),
-        sender: currentUser, // should include _id, username, image etc.
+        sender: currentUser,
         message: newMessage,
         timestamp: new Date(),
         isOptimistic: true
       };
       setMessages(prev => [...prev, tempMessage]);
-
+  
       const res = await fetch(
         `http://localhost:5001/api/conversations/${selectedConversation._id}/messages`,
         {
@@ -95,51 +127,66 @@ const DMPage = () => {
           body: JSON.stringify({ message: newMessage })
         }
       );
-
       const { data } = await res.json();
-      // Replace optimistic message with the saved one
       setMessages(prev => prev.filter(m => !m.isOptimistic).concat(data));
-
-      // Emit via socket to update the other party in real time
+  
+      // Get the receiver (the other participant in the conversation)
+      const receiver = selectedConversation.participants.find(
+        p => p._id !== currentUser._id
+      );
+  
+      // Ensure the jobId is available (adjust this as per your application)
+      const jobId = selectedConversation.jobId; // You can access it from the conversation or other context
+  
       socket?.emit('sendMessage', {
         conversationId: selectedConversation._id,
         sender: currentUser._id,
-        receiver: selectedConversation?.participants?.find(p => p._id !== currentUser._id)?._id,
-        message: newMessage
+        receiver: receiver?._id, // Receiver is the other participant (client or applicant)
+        message: newMessage,
+        jobId: jobId // Include the jobId here
       });
-
+  
       setNewMessage('');
     } catch (err) {
       console.error('Error:', err);
       setMessages(prev => prev.filter(m => !m.isOptimistic));
     }
   };
-
-  // Accept client button logic: remove other conversations with same jobId and navigate
+  
   const handleAcceptClient = () => {
-    // Assume jobId is stored in lastMessage of a conversation (if available)
-    const jobId = selectedConversation?.lastMessage?.jobId;
-    if (jobId) {
-      // Filter out any conversation (other than the selected one) that has the same jobId
-      const updatedConversations = conversations.filter(conv => {
-        if (conv._id === selectedConversation._id) return true;
-        return conv.lastMessage?.jobId?.toString() !== jobId.toString();
-      });
-      setConversations(updatedConversations);
-    }
-    // Navigate to CreateTimeline component (pass conversation or job data via state if needed)
-    navigate('/createtimeline', { state: { conversation: selectedConversation } });
+    // Store the selectedConversation in localStorage
+    localStorage.setItem('selectedConversation', JSON.stringify(selectedConversation));
+  
+    // Log the selectedConversation to the console
+    console.log('Selected Conversation:', selectedConversation);
+  
+    // Navigate to the create-timeline page
+    navigate('/create-timeline', { state: { conversation: selectedConversation } });
   };
-
+  
   if (!currentUser) {
     navigate('/login');
     return null;
   }
-
   if (loading) return <div className="loading">Loading conversations...</div>;
 
   return (
     <div className="dm-container">
+      <div className="header">
+        <img src='images/image10.png' alt="User" className="" />
+        <div className="header-right">
+          <span onClick={navigateToHome}>Home</span>
+          <span onClick={navigateToAbout}>Profile</span>
+          <span onClick={navigateToproj}>Ongoing Projects</span>
+          <span onClick={navigateToPost}>Post a Job</span>
+          <span onClick={navigateToChat}>About Us</span>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
+        </div>
+      </div>
+
+      {/* Conversation List */}
       <div className="conversation-list">
         <h2>Conversations</h2>
         {conversations.map(conv => {
@@ -148,7 +195,7 @@ const DMPage = () => {
             <div 
               key={conv._id}
               className={`conversation-item ${selectedConversation?._id === conv._id ? 'active' : ''}`}
-              onClick={() => setSelectedConversation(conv)}
+              onClick={() => setSelectedConversation(conv)}  
             >
               <img src={otherUser?.image || '/default-user.png'} alt={otherUser?.username} />
               <div className="conversation-info">
@@ -159,31 +206,45 @@ const DMPage = () => {
           );
         })}
       </div>
+
+      {/* Chat Area */}
       <div className="chat-area">
         {selectedConversation ? (
           <>
             <div className="chat-header">
               <h3>
-                {selectedConversation?.participants?.find(p => p._id !== currentUser._id)?.username}
+                {
+                  selectedConversation?.participants?.find(
+                    (p) => p._id !== currentUser._id
+                  )?.username
+                }
               </h3>
-              {selectedConversation?.lastMessage?.jobId && (
-                <button className="accept-button" onClick={handleAcceptClient}>
-                  Accept Client
-                </button>
-              )}
             </div>
             <div className="messages-container">
-              {messages.map(msg => {
+              {messages.map((msg) => {
                 if (!msg) return null;
-                // Use optional chaining for sender
-                const senderId = msg.sender ? (typeof msg.sender === 'object' ? msg.sender._id : msg.sender) : '';
+                const senderId = msg.sender
+                  ? typeof msg.sender === 'object'
+                    ? msg.sender._id
+                    : msg.sender
+                  : '';
+                const messageClass =
+                  senderId === currentUser._id
+                    ? currentUser.role === 'client'
+                      ? 'client-sent'
+                      : 'applicant-sent'
+                    : currentUser.role === 'client'
+                    ? 'applicant-received'
+                    : 'client-received';
                 return (
-                  <div 
-                    key={msg._id}
-                    className={`message ${senderId === currentUser._id ? 'sent' : 'received'}`}
-                  >
+                  <div key={msg._id} className={`message ${messageClass}`}>
                     <div className="message-content">
                       <p>{msg.message}</p>
+                      {msg.counterOffer && (
+                        <p className="counter-offer">
+                          Counter Offer: ${msg.counterOffer}
+                        </p>
+                      )}
                       <span className="timestamp">
                         {new Date(msg.timestamp).toLocaleTimeString()}
                       </span>
@@ -200,13 +261,14 @@ const DMPage = () => {
                 placeholder="Type a message..."
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
               />
+              <button className="accept-button" onClick={handleAcceptClient}>
+                Accept Client
+              </button>
               <button onClick={handleSendMessage}>Send</button>
             </div>
           </>
         ) : (
-          <div className="no-conversation">
-            <p>Select a conversation to start chatting</p>
-          </div>
+          <p>Select a conversation to start chatting...</p>
         )}
       </div>
     </div>

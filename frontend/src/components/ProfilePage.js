@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import "./ProfilePage.css"; // Updated CSS for styling
+import "./ProfilePage.css";
 import { useNavigate } from "react-router-dom";
 
 const ProfilePage = () => {
@@ -9,35 +9,13 @@ const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [tempProfile, setTempProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // Function to upload file using the Multer endpoint
-  const handleFileUpload = async (file) => {
-    const formData = new FormData();
-    formData.append("profilePhoto", file);
-    formData.append("userId", profile._id); // Assumes profile._id exists
-
-    try {
-      const response = await fetch("http://localhost:5001/api/user/uploadProfile", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
-      if (response.ok) {
-        // Update tempProfile with the returned URL from multer
-        handleChange("profilePhoto", data.profilePhoto);
-      } else {
-        console.error("Upload error: ", data.error);
-      }
-    } catch (error) {
-      console.error("Error uploading file: ", error);
-    }
-  };
-
-  // Fetch profile data from the server
+  // Fetch profile data from the server on mount
   useEffect(() => {
     const token = localStorage.getItem("token");
-
     if (!token) {
       setError("No authentication token found. Please log in.");
       navigate("/login");
@@ -51,7 +29,9 @@ const ProfilePage = () => {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => (res.ok ? res.json() : Promise.reject("Failed to fetch profile")))
+      .then((res) =>
+        res.ok ? res.json() : Promise.reject("Failed to fetch profile")
+      )
       .then((data) => {
         setProfile(data);
         setTempProfile(data);
@@ -64,47 +44,98 @@ const ProfilePage = () => {
       });
   }, [navigate]);
 
-  // Handle profile edit/save
-  const handleEdit = () => {
-    if (isEditing) {
-      // Optimistically update the UI immediately
-      setProfile(tempProfile);
-
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Authentication token missing.");
-        return;
-      }
-
-      fetch("http://localhost:5001/api/user/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(tempProfile),
-      })
-        .then((res) => (res.ok ? res.json() : Promise.reject("Failed to update profile")))
-        .then((updatedProfile) => {
-          setProfile(updatedProfile);
-          setIsEditing(false); // Close modal after successful save
-        })
-        .catch((err) => {
-          console.error("Error updating profile:", err);
-        });
-    } else {
-      setIsEditing(true);
-    }
-  };
-
-  // Handle input changes during editing
+  // Generic change handler for form inputs
   const handleChange = (field, value) => {
     setTempProfile({ ...tempProfile, [field]: value });
   };
 
+  // Function to handle file upload for profile photo using your drag-drop/upload box style
+  const handleFileUpload = async (file) => {
+    if (!profile) return;
+    const formData = new FormData();
+    formData.append("profilePhoto", file);
+    formData.append("userId", profile._id);
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch("http://localhost:5001/api/user/uploadProfile", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      // Check if the response content type is JSON
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        if (response.ok) {
+          // Update image in both tempProfile and profile states
+          handleChange("image", data.image);
+          setProfile(prev => ({ ...prev, image: data.image }));
+        } else {
+          console.error("Upload error:", data.message || "Unknown error");
+        }
+      } else {
+        // If not JSON, log the text response for debugging
+        const text = await response.text();
+        console.error("Server did not return JSON:", text);
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error);
+    }
+  };
+  
+  // Save changes made in the edit modal
+  const saveProfileChanges = () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    // Prepare payload – note that password update now requires both oldPassword and newPassword if you want to change it.
+    const payload = {
+      email: tempProfile.email,
+      bio: tempProfile.bio,
+      skills: tempProfile.skills,
+      profilePhoto: tempProfile.image, // API expects "profilePhoto"
+    };
+
+    // Include password update if both old and new passwords are provided
+    if (tempProfile.oldPassword && tempProfile.newPassword) {
+      payload.oldPassword = tempProfile.oldPassword;
+      payload.newPassword = tempProfile.newPassword;
+    }
+
+    fetch("http://localhost:5001/api/user/profile", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    })
+      .then((res) =>
+        res.ok ? res.json() : Promise.reject("Failed to update profile")
+      )
+      .then((updatedProfile) => {
+        setProfile(updatedProfile);
+        setTempProfile(updatedProfile);
+        setIsEditing(false);
+        setSuccessMsg("Profile updated successfully!");
+        setTimeout(() => setSuccessMsg(""), 3000);
+      })
+      .catch((err) => {
+        console.error("Error updating profile:", err);
+        setError("Failed to update profile");
+      });
+  };
+
   if (loading) return <p>Loading...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
-
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setCurrentUser(null);
+    navigate("/");
+  };
   return (
     <div className="profile-page">
       {/* Header */}
@@ -112,37 +143,50 @@ const ProfilePage = () => {
         <img src="images/image10.png" alt="User" />
         <div className="header-right">
           <span onClick={() => navigate("/homes")}>Home</span>
-          <span onClick={() => navigate("/contact")}>Contact Us</span>
-          <span onClick={() => navigate("/abt")}>About</span>
+          <span onClick={() => navigate("/post")}>Post a Job</span>
+          
           <span onClick={() => navigate("/chat")}>Chat</span>
           <span onClick={() => navigate("/ong-proj")}>Ongoing Projects</span>
-          <span onClick={() => navigate("/post")}>Post a Job</span>
-          <span>Settings</span>
+          <span onClick={() => navigate("/abt")}>About Us</span>
+          <span onClick={() => navigate("/contact")}>Contact Us</span>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
+         
         </div>
       </div>
 
-      {/* Main Container: Profile, About Me & Financial Overview in one row */}
+      {/* Main Container */}
       <div className="main-container">
         {/* Profile Card */}
         <div className="profile-card">
           <div className="card-border-top"></div>
           <div className="img">
-            <img src={profile.profilePhoto || "default-user.png"} alt="User" />
+            <img src={profile.image || "default-user.png"} alt="User" />
           </div>
-          <span>{profile.name || "User"}</span>
+          <span>{profile.username || "User"}</span>
           <span className="job">
             {profile.skills ? profile.skills.join(", ") : "No skills listed"}
           </span>
           <span>Rating: {profile.rating || "N/A"} ⭐</span>
-          <button onClick={handleEdit}>{isEditing ? "Save" : "Edit"}</button>
+          <button onClick={() => setIsEditing(true)}>Edit</button>
+          {successMsg && <p className="success-msg">{successMsg}</p>}
         </div>
 
         {/* About Me Section */}
-        <div className="about-me">
+        <div className="financial-container">
           <h2>About Me</h2>
-          <p>{profile.bio || "Tell us about yourself..."}</p>
-          <h3>Skills:</h3>
-          <p>{profile.skills ? profile.skills.join(", ") : "No skills listed."}</p>
+          <div className="financial-item">
+          <span className="label">{profile.bio || "Tell us about yourself..."}</span>
+          </div>
+          <div className="financial-item">
+
+         
+          <span className="label">
+            Skills: 
+            {profile.skills ? profile.skills.join(", ") : "No skills listed."}
+          </span>
+          </div>
         </div>
 
         {/* Financial Overview */}
@@ -201,55 +245,91 @@ const ProfilePage = () => {
       {/* Edit Modal */}
       {isEditing && (
         <div className="edit-modal">
-          <h2>Edit Profile</h2>
-          <div
-            className="drag-drop-area"
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => {
-              e.preventDefault();
-              const file = e.dataTransfer.files[0];
-              if (file) {
-                handleFileUpload(file);
-              }
-            }}
-          >
-            <p>Drag &amp; drop your photo here or click to select</p>
-            <input
-              type="file"
-              onChange={(e) => {
-                const file = e.target.files[0];
+          <div className="modal-content">
+            <h2>Edit Profile</h2>
+            {/* Profile Photo Upload Area */}
+            <div
+              className="file-upload"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const file = e.dataTransfer.files[0];
                 if (file) {
                   handleFileUpload(file);
                 }
               }}
+            >
+              <label className="upload-area">
+                <input
+                  type="file"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      handleFileUpload(file);
+                    }
+                  }}
+                />
+                <div className="upload-content">
+                  <svg viewBox="0 0 24 24" width="48" height="48">
+                    <path
+                      fill="currentColor"
+                      d="M14,13V17H10V13H7L12,8L17,13H14M19.35,10.03C18.67,6.59 15.64,4 12,4C9.11,4 6.6,5.64 5.35,8.03C2.34,8.36 0,10.9 0,14A6,6 0 0,0 6,20H19A5,5 0 0,0 24,15C24,12.36 21.95,10.22 19.35,10.03Z"
+                    />
+                  </svg>
+                  <p>Drag files here or click to upload</p>
+                </div>
+              </label>
+            </div>
+            {/* Password Update Fields */}
+            <label>Old Password</label>
+            <input
+              type="password"
+              value={tempProfile.oldPassword || ""}
+              onChange={(e) => handleChange("oldPassword", e.target.value)}
+              placeholder="Enter old password"
             />
+            <label>New Password</label>
+            <input
+              type="password"
+              value={tempProfile.newPassword || ""}
+              onChange={(e) => handleChange("newPassword", e.target.value)}
+              placeholder="New Password (leave blank to keep unchanged)"
+            />
+            {/* Other Editable Fields */}
+            <label>Bio</label>
+            <textarea
+              value={tempProfile.bio || ""}
+              onChange={(e) => handleChange("bio", e.target.value)}
+              placeholder="Tell us about yourself (max 100 words)"
+              maxLength="100"
+            />
+            <label>Skills (comma separated)</label>
+            <input
+              type="text"
+              value={
+                tempProfile.skills ? tempProfile.skills.join(", ") : ""
+              }
+              onChange={(e) =>
+                handleChange(
+                  "skills",
+                  e.target.value.split(",").map((s) => s.trim())
+                )
+              }
+              placeholder="Enter skills separated by commas"
+            />
+            {/* Modal Action Buttons */}
+            <div className="modal-buttons">
+              <button onClick={saveProfileChanges} className="save-btn">
+                Save Changes
+              </button>
+              <button
+                onClick={() => setIsEditing(false)}
+                className="cancel-btn"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-          <input
-            type="password"
-            value={tempProfile.password || ""}
-            onChange={(e) => handleChange("password", e.target.value)}
-            placeholder="Password"
-          />
-          <textarea
-            value={tempProfile.bio || ""}
-            onChange={(e) => handleChange("bio", e.target.value)}
-            placeholder="Tell about yourself (max 100 words)"
-            maxLength="100"
-          />
-          <input
-            type="text"
-            value={tempProfile.skills ? tempProfile.skills.join(", ") : ""}
-            onChange={(e) =>
-              handleChange(
-                "skills",
-                e.target.value.split(",").map((s) => s.trim())
-              )
-            }
-            placeholder="Enter skills separated by commas"
-          />
-          <button onClick={handleEdit} className="save-btn">
-            Save
-          </button>
         </div>
       )}
     </div>

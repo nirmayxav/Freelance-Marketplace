@@ -1,35 +1,54 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import './OngoingProject.css'; // Ensure you have this CSS file for styling
-
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import './OngoingProject.css';
 
 const OngoingProject = () => {
   const navigate = useNavigate();
-    
-      const navigateToHome = () => {
-        navigate('/homes'); // Navigate to the profile page
-      };
-    
-      const navigateToChat = () => {
-        navigate('/chat'); // Navigate to the chat page
-      };
-      const navigateToProfile = () => {
-        navigate('/profile'); // Navigate to the chat page
-      };
-      const navigateToPost = () => {
-        navigate('/post'); // Navigate to the chat page
-      };
-      const navigateContact = () => {
-        navigate('/contact'); // Navigate to the chat page
-      };
-      const navigateToAbout = () => {
-        navigate('/abt'); // Navigate to the chat page
-      };
   const { projectId } = useParams();
+  const [timeline, setTimeline] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [code, setCode] = useState('');
   const [submissions, setSubmissions] = useState([]);
   const [isAccepted, setIsAccepted] = useState(false);
+
+  // Fetch timeline (ongoing project) details from the backend
+  useEffect(() => {
+    const fetchTimeline = async () => {
+      try {
+        const res = await fetch(`http://localhost:5001/api/timeline/${projectId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setTimeline(data.timeline);
+          // If timeline status is accepted or in-progress, mark project as accepted
+          if (data.timeline.status === 'accepted' || data.timeline.status === 'in-progress') {
+            setIsAccepted(true);
+          }
+        } else {
+          // No timeline found (e.g. 404) – no ongoing project exists
+          setTimeline(null);
+        }
+      } catch (error) {
+        console.error('Error fetching timeline:', error);
+        setTimeline(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTimeline();
+  }, [projectId]);
+
+  // Navigation functions (unchanged)
+  const navigateToHome = () => { navigate('/homes'); };
+  const navigateToChat = () => { navigate('/chat'); };
+  const navigateToProfile = () => { navigate('/profile'); };
+  const navigateToPost = () => { navigate('/post'); };
+  const navigateContact = () => { navigate('/contact'); };
+  const navigateToAbout = () => { navigate('/abt'); };
 
   const handleCodeSubmit = (e) => {
     e.preventDefault();
@@ -38,7 +57,7 @@ const OngoingProject = () => {
         id: submissions.length + 1,
         code,
         timestamp: new Date().toLocaleString(),
-        status: 'Pending Review'
+        status: 'Pending Review',
       };
       setSubmissions([...submissions, newSubmission]);
       setCode('');
@@ -46,67 +65,82 @@ const OngoingProject = () => {
   };
 
   const handleAccept = () => {
+    // Optionally, you can also update the timeline status in your backend here.
     setIsAccepted(true);
     alert('Project accepted! Payment will be released.');
   };
 
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  // If no ongoing project (timeline) is found, show a message
+  if (!timeline) {
+    return (
+      <div className="ongoing-project">
+        <div className="header">
+          <img src='images/image10.png' alt="User" />
+          <div className="header-right">
+            <span onClick={navigateToHome}>Home</span>
+            <span onClick={navigateToProfile}>Profile</span>
+            <span onClick={navigateToChat}>Chat</span>
+            <span onClick={navigateContact}>Contact Us</span>
+            <span onClick={navigateToAbout}>About</span>
+            <span onClick={navigateToPost}>Post a Job</span>
+            <span>Settings</span>
+          </div>
+        </div>
+        <h1>No ongoing projects</h1>
+      </div>
+    );
+  }
+
   return (
     <div className="ongoing-project">
-       <div className="header">
-        <img src='images/image10.png' alt="User" className="" />
-        
+      <div className="header">
+        <img src='images/image10.png' alt="User" />
         <div className="header-right">
           <span onClick={navigateToHome}>Home</span>
           <span onClick={navigateToProfile}>Profile</span>
           <span onClick={navigateToChat}>Chat</span>
-
           <span onClick={navigateContact}>Contact Us</span>
           <span onClick={navigateToAbout}>About</span>
-          
-        
           <span onClick={navigateToPost}>Post a Job</span>
-
-          <span >Settings</span>
+          <span>Settings</span>
         </div>
       </div>
       <h1>Ongoing Project: Project #{projectId}</h1>
 
-      {/* Project Timeline */}
+      {/* Project Timeline using milestones */}
       <div className="project-timeline">
         <h2>Project Timeline</h2>
         <div className="timeline-steps">
-          <div className="timeline-step completed">
-            <span>1. Project Kickoff</span>
-            <p>Completed on 2023-10-01</p>
-          </div>
-          <div className="timeline-step completed">
-            <span>2. Design Approval</span>
-            <p>Completed on 2023-10-10</p>
-          </div>
-          <div className="timeline-step active">
-            <span>3. Development Phase</span>
-            <p>In Progress</p>
-          </div>
-          <div className="timeline-step">
-            <span>4. Testing & QA</span>
-            <p>Upcoming</p>
-          </div>
-          <div className="timeline-step">
-            <span>5. Final Delivery</span>
-            <p>Upcoming</p>
-          </div>
+          {timeline.milestones && timeline.milestones.length > 0 ? (
+            timeline.milestones.map((milestone, index) => (
+              <div key={index} className={`timeline-step ${index === timeline.milestones.length - 1 ? 'active' : 'completed'}`}>
+                <span>{milestone.description}</span>
+                {index === 0 && timeline.createdAt && (
+                  <p>Started on {new Date(timeline.createdAt).toLocaleDateString()}</p>
+                )}
+              </div>
+            ))
+          ) : (
+            <p>No timeline milestones available.</p>
+          )}
         </div>
       </div>
 
-      {/* Important Features */}
+      {/* Important Features based on milestone descriptions */}
       <div className="important-features">
         <h2>Important Features</h2>
         <ul>
-          <li>Responsive Design</li>
-          <li>User Authentication</li>
-          <li>Payment Gateway Integration</li>
-          <li>Admin Dashboard</li>
-          <li>API Integration</li>
+          {timeline.milestones && timeline.milestones.length > 0 ? (
+            timeline.milestones.map((milestone, index) => (
+              <li key={index}>{milestone.description}</li>
+            ))
+          ) : (
+            <p>No important features defined.</p>
+          )}
         </ul>
       </div>
 

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import JobCard from "./JobCard"; // Ensure this path is correct
 import "./MainPage.css";
-import { socket } from "./socket"; // e.g., from
 
 const MainPage = () => {
   const navigate = useNavigate();
@@ -115,8 +114,9 @@ const MainPage = () => {
           <span onClick={() => navigate("/chat")}>Chat</span>
           <span onClick={() => navigate("/ong-proj")}>Ongoing Projects</span>
           <span onClick={() => navigate("/post")}>Post a Job</span>
+          <span onClick={() => navigate("/abt")}>About Us</span>
           <span onClick={() => navigate("/contact")}>Contact Us</span>
-          <span onClick={() => navigate("/abt")}>About</span>
+          
           <button className="logout-btn" onClick={handleLogout}>
             Logout
           </button>

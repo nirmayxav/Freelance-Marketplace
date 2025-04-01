@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './CreateTimeline.css';
 
-
 const CreateTimeline = () => {
+  const location = useLocation();
+  const acceptedConversation = location.state?.conversation;
   const [formData, setFormData] = useState({
     paymentMode: 'full',
     totalAmount: '',
@@ -29,19 +30,71 @@ const CreateTimeline = () => {
       milestones: [...formData.milestones, { description: '', amount: '', trigger: '' }]
     });
   };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log(formData);
-    navigate('/chat');
+  
+    // Fetch the conversation data
+    const conversationId = 'someConversationId'; // Get the conversationId from context, state, or as a prop
+  
+    // Ensure conversation data is available
+    if (!conversationId) {
+      alert('Conversation not found!');
+      return;
+    }
+  
+    const fetchConversation = async () => {
+      try {
+        const res = await fetch(`http://localhost:5001/api/conversations/${conversationId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const conversation = data.conversation;
+          
+          const client = conversation.participants.find(p => p._id !== acceptedConversation.applicant);
+          const applicant = conversation.participants.find(p => p._id === acceptedConversation.applicant);
+  
+          const requestData = {
+            ...formData,
+            conversationId: conversation._id,
+            client,
+            applicant
+          };
+  
+          // Proceed to send the request to the backend to create the timeline
+          const res = await fetch('http://localhost:5001/api/timeline', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            },
+            body: JSON.stringify(requestData)
+          });
+  
+          const result = await res.json();
+          if (result.success) {
+            navigate('/chat');
+          }
+        } else {
+          console.error("Error fetching conversation data", data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching conversation:', error);
+      }
+    };
+  
+    fetchConversation();
   };
-
+  
+  
   return (
     <div className="timeline-container">
-       <div className="header">
-        <img src='images/image10.png' alt="User" className="" />
-        </div>
+      <div className="header">
+        <img src="images/image10.png" alt="User" className="header-img" />
+      </div>
       <div className="timeline-stepper">
         <div className={`step ${currentStep === 1 ? 'active' : ''}`}>1. Payment Mode</div>
         <div className={`step ${currentStep === 2 ? 'active' : ''}`}>2. Timeline & Escrow</div>
