@@ -6,39 +6,45 @@ import './DMPage.css';
 const DMPage = () => {
 
   const navigateToHome = () => {
-    navigate('/homes'); // Navigate to the profile page
+    navigate('/homes');
   };
 
   const navigateToChat = () => {
-    navigate('/abt'); // Navigate to the chat page
+    navigate('/abt');
   };
+
   const navigateToproj = () => {
-    navigate('/ong-proj'); // Navigate to the chat page
+    navigate('/ong-proj');
   };
+
   const navigateToPost = () => {
-    navigate('/post'); // Navigate to the chat page
+    navigate('/post');
   };
+
   const navigateContact = () => {
-    navigate('/contact'); // Navigate to the chat page
+    navigate('/contact');
   };
+
   const navigateToAbout = () => {
-    navigate('/profile'); // Navigate to the chat page
+    navigate('/profile');
   };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/");
   };
+
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [jobId, setJobId] = useState(null);  // State to store jobId
   const messagesEndRef = useRef(null);
   const [socket, setSocket] = useState(null);
 
-  // Assume currentUser object includes a role field ("client" or "applicant")
   const currentUser = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
@@ -96,16 +102,9 @@ const DMPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Log every time selectedConversation changes
-  useEffect(() => {
-    if (selectedConversation) {
-      console.log('Selected Conversation:', selectedConversation);
-    }
-  }, [selectedConversation]);
-
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
-  
+
     try {
       const tempMessage = {
         _id: Date.now().toString(),
@@ -115,7 +114,7 @@ const DMPage = () => {
         isOptimistic: true
       };
       setMessages(prev => [...prev, tempMessage]);
-  
+
       const res = await fetch(
         `http://localhost:5001/api/conversations/${selectedConversation._id}/messages`,
         {
@@ -129,45 +128,48 @@ const DMPage = () => {
       );
       const { data } = await res.json();
       setMessages(prev => prev.filter(m => !m.isOptimistic).concat(data));
-  
-      // Get the receiver (the other participant in the conversation)
+
       const receiver = selectedConversation.participants.find(
         p => p._id !== currentUser._id
       );
-  
-      // Ensure the jobId is available (adjust this as per your application)
-      const jobId = selectedConversation.jobId; // You can access it from the conversation or other context
-  
+
+      // Ensure that the `jobId` is passed
+      const jobId = selectedConversation.jobId; // Extract jobId from the full selectedConversation
+
+      // Emit the message with the jobId
       socket?.emit('sendMessage', {
         conversationId: selectedConversation._id,
         sender: currentUser._id,
-        receiver: receiver?._id, // Receiver is the other participant (client or applicant)
+        receiver: receiver?._id,
         message: newMessage,
-        jobId: jobId // Include the jobId here
+        jobId: jobId // Ensure the jobId is included here
       });
-  
+
       setNewMessage('');
     } catch (err) {
       console.error('Error:', err);
       setMessages(prev => prev.filter(m => !m.isOptimistic));
     }
   };
-  
+
   const handleAcceptClient = () => {
-    // Store the selectedConversation in localStorage
     localStorage.setItem('selectedConversation', JSON.stringify(selectedConversation));
-  
-    // Log the selectedConversation to the console
     console.log('Selected Conversation:', selectedConversation);
-  
-    // Navigate to the create-timeline page
     navigate('/create-timeline', { state: { conversation: selectedConversation } });
   };
-  
+
+  // Log the selected conversation and jobId
+  const handleConversationClick = (conv) => {
+    console.log("Selected Conversation:", conv); // Log selected conversation when clicked
+    setSelectedConversation(conv);
+    setJobId(conv.jobId); // Store jobId when conversation is selected
+  };
+
   if (!currentUser) {
     navigate('/login');
     return null;
   }
+
   if (loading) return <div className="loading">Loading conversations...</div>;
 
   return (
@@ -188,24 +190,32 @@ const DMPage = () => {
 
       {/* Conversation List */}
       <div className="conversation-list">
-        <h2>Conversations</h2>
-        {conversations.map(conv => {
-          const otherUser = conv.participants.find(p => p?._id !== currentUser._id);
-          return (
-            <div 
-              key={conv._id}
-              className={`conversation-item ${selectedConversation?._id === conv._id ? 'active' : ''}`}
-              onClick={() => setSelectedConversation(conv)}  
-            >
-              <img src={otherUser?.image || '/default-user.png'} alt={otherUser?.username} />
-              <div className="conversation-info">
-                <h3>{otherUser?.username || 'Unknown User'}</h3>
-                <p>{conv.lastMessage?.message?.substring(0, 30) || 'No messages'}</p>
-              </div>
-            </div>
-          );
-        })}
+  <h2>Conversations</h2>
+  {conversations.map(conv => {
+    const otherUser = conv.participants.find(p => p?._id !== currentUser._id);
+    return (
+      <div
+        key={conv._id}
+        className={`conversation-item ${selectedConversation?._id === conv._id ? 'active' : ''}`}
+        onClick={() => {
+          console.log("Selected Conversation:", conv); // Log selected conversation when clicked
+          setSelectedConversation(conv);
+        }}
+      >
+        <img src={otherUser?.image || '/default-user.png'} alt={otherUser?.username} />
+        <div className="conversation-info">
+          <h3>{otherUser?.username || 'Unknown User'}</h3>
+          <p>{conv.lastMessage?.message?.substring(0, 30) || 'No messages'}</p>
+          {/* Correct way to render jobId title */}
+          <p>Job Title: {conv.jobId?.title || 'No job associated'}</p> {/* Render job title */}
+          {/* Optionally, you can render job description */}
+          <p>Job Description: {conv.jobId?.description || 'No description available'}</p> {/* Render job description */}
+        </div>
       </div>
+    );
+  })}
+</div>
+
 
       {/* Chat Area */}
       <div className="chat-area">
@@ -213,11 +223,9 @@ const DMPage = () => {
           <>
             <div className="chat-header">
               <h3>
-                {
-                  selectedConversation?.participants?.find(
-                    (p) => p._id !== currentUser._id
-                  )?.username
-                }
+                {selectedConversation?.participants?.find(
+                  (p) => p._id !== currentUser._id
+                )?.username}
               </h3>
             </div>
             <div className="messages-container">

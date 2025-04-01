@@ -16,6 +16,7 @@ router.get('/:id', protect, async (req, res) => {
       .populate('participants', 'username email image') // Populate participants data (client/applicant)
       .populate('messages', 'message sender') // Populate messages if needed
       .populate('lastMessage', 'message') // Optional: Populate lastMessage data
+      .populate('jobId', 'title description') // Populate jobId details if needed
       .exec();
 
     if (!conversation) {
@@ -28,7 +29,10 @@ router.get('/:id', protect, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-// Get all conversations for the logged-in user, ensuring only one conversation per participant pair
+
+// @desc   Get all conversations for the logged-in user
+// @route  GET /api/conversations
+// @access Private
 router.get('/', async (req, res) => {
   try {
     const userId = req.user._id; // The logged-in user's ID
@@ -48,6 +52,7 @@ router.get('/', async (req, res) => {
           select: 'username image'
         }
       })
+      .populate('jobId', 'title description') // Populate jobId details for each conversation
       .sort({ updatedAt: -1 });
 
     // Deduplicate the conversations based on participants and only return the conversation ID once per pair
@@ -61,9 +66,10 @@ router.get('/', async (req, res) => {
       if (!seenParticipants.has(participantsIds)) {
         seenParticipants.add(participantsIds);
         uniqueConversations.push({
-          _id: conv._id, // Only send the conversation ID
-          participants: conv.participants, // Include participants, if needed
-          lastMessage: conv.lastMessage // Optionally include last message details
+          _id: conv._id,
+          participants: conv.participants,
+          lastMessage: conv.lastMessage,
+          jobId: conv.jobId // Include jobId here
         });
       }
     });
@@ -75,8 +81,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-
-// Get messages for a specific conversation
+// @desc   Get messages for a specific conversation
+// @route  GET /api/conversations/:conversationId/messages
+// @access Private
 router.get('/:conversationId/messages', async (req, res) => {
   try {
     const conversation = await Conversation.findOne({
@@ -90,9 +97,11 @@ router.get('/:conversationId/messages', async (req, res) => {
         select: 'username image'
       }
     });
+
     if (!conversation) {
       return res.status(404).json({ success: false, message: "Conversation not found" });
     }
+
     res.json({ success: true, data: conversation.messages });
   } catch (error) {
     console.error("Error fetching messages:", error);
@@ -100,7 +109,9 @@ router.get('/:conversationId/messages', async (req, res) => {
   }
 });
 
-// Send new message (via REST)
+// @desc   Send new message (via REST)
+// @route  POST /api/conversations/:conversationId/messages
+// @access Private
 router.post('/:conversationId/messages', async (req, res) => {
   try {
     const { message } = req.body;
@@ -118,7 +129,8 @@ router.post('/:conversationId/messages', async (req, res) => {
         (p) => p.toString() !== req.user._id.toString()
       ),
       message,
-      timestamp: new Date()
+      timestamp: new Date(),
+      jobId: conversation.jobId // Include jobId when sending the chat message
     });
     const savedChat = await newChat.save();
 
@@ -139,10 +151,13 @@ router.post('/:conversationId/messages', async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-// Create or fetch existing conversation between two participants
+
+// @desc   Create or fetch existing conversation between two participants
+// @route  POST /api/conversations/create
+// @access Private
 router.post('/create', async (req, res) => {
   try {
-    const { clientId, applicantId } = req.body;
+    const { clientId, applicantId, jobId } = req.body; // Pass jobId along with the request
 
     // Check if a conversation already exists between the two participants
     let conversation = await Conversation.findOne({
@@ -154,6 +169,7 @@ router.post('/create', async (req, res) => {
       conversation = new Conversation({
         participants: [clientId, applicantId],
         messages: [], // Initial messages
+        jobId: jobId // Store jobId in the conversation
       });
       await conversation.save();
     }
@@ -164,6 +180,5 @@ router.post('/create', async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
 
 module.exports = router;

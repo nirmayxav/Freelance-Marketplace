@@ -10,6 +10,7 @@ const OngoingProject = () => {
   const [code, setCode] = useState('');
   const [submissions, setSubmissions] = useState([]);
   const [isAccepted, setIsAccepted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null);  // State to store the selected payment method
 
   // Fetch timeline (ongoing project) details from the backend
   useEffect(() => {
@@ -24,12 +25,10 @@ const OngoingProject = () => {
         if (res.ok) {
           const data = await res.json();
           setTimeline(data.timeline);
-          // If timeline status is accepted or in-progress, mark project as accepted
           if (data.timeline.status === 'accepted' || data.timeline.status === 'in-progress') {
             setIsAccepted(true);
           }
         } else {
-          // No timeline found (e.g. 404) – no ongoing project exists
           setTimeline(null);
         }
       } catch (error) {
@@ -65,16 +64,20 @@ const OngoingProject = () => {
   };
 
   const handleAccept = () => {
-    // Optionally, you can also update the timeline status in your backend here.
     setIsAccepted(true);
     alert('Project accepted! Payment will be released.');
+  };
+
+  // Handle payment method selection
+  const handlePaymentMethod = (method) => {
+    setPaymentMethod(method);
+    console.log("Payment Method Selected: ", method);
   };
 
   if (loading) {
     return <p>Loading...</p>;
   }
 
-  // If no ongoing project (timeline) is found, show a message
   if (!timeline) {
     return (
       <div className="ongoing-project">
@@ -175,8 +178,25 @@ const OngoingProject = () => {
         )}
       </div>
 
+      {/* Payment Method Selection */}
+      {!paymentMethod && !isAccepted && (
+        <div className="payment-selection">
+          <h2>Select Payment Method</h2>
+          <button onClick={() => handlePaymentMethod('Stripe')}>Stripe (Card Payment)</button>
+          <button onClick={() => handlePaymentMethod('Blockchain')}>Blockchain (Crypto)</button>
+        </div>
+      )}
+
+      {/* Payment Information Display */}
+      {paymentMethod && !isAccepted && (
+        <div className="payment-method">
+          <p>Payment Method Selected: {paymentMethod}</p>
+          {/* Add additional payment steps if needed, like Stripe integration or Blockchain wallet */}
+        </div>
+      )}
+
       {/* Acceptance Section */}
-      {!isAccepted && (
+      {!isAccepted && paymentMethod && (
         <div className="acceptance-section">
           <h2>Accept Project</h2>
           <p>Review the code and click below to accept the project.</p>
