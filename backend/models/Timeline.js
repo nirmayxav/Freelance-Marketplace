@@ -1,3 +1,4 @@
+// models/Timeline.js
 const mongoose = require('mongoose');
 
 const TimelineSchema = new mongoose.Schema(
@@ -46,10 +47,16 @@ const TimelineSchema = new mongoose.Schema(
         trigger: { type: String, required: true },
       },
     ],
+    // Timeline status: 'proposal' (default), 'accepted', 'in-progress', 'completed'
     status: {
       type: String,
       enum: ['proposal', 'accepted', 'in-progress', 'completed'],
       default: 'proposal',
+    },
+    // New field for storing applicant's text/GitHub submission
+    applicantSubmission: {
+      type: String,
+      default: "",
     },
   },
   { timestamps: true }

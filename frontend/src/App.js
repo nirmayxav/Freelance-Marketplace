@@ -11,9 +11,15 @@ import OngoingProject from './components/OngoingProject';
 import PostJob from './components/PostJob'; 
 import ContactUs from './components/ContactUs';
 import AboutUs from './components/AboutUs';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsAndConditions from './components/TermsAndConditions'; 
 import Footer from './components/Footer'; 
 import React, { useState, useEffect } from "react";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import PaymentForm from "./components/PaymentForm";
 
+const stripePromise =loadStripe("pk_test_51R8SdlFb6GyXWQWifPnTIKWBpUkCd2XVAXgPPtVswu1M3NjmOIoUoTApFQ2OwfC4ErJ6eUtY6B1PO9fVlvUbFMer00aThejWPy");
 
 
 
@@ -51,7 +57,9 @@ const App = () => {
           <Route path="/contact" element={<ContactUs/>} /> {/* Route for ProfilePage */}
           <Route path="/abt" element={<AboutUs />} /> {/* Route for ProfilePage */}
           <Route path="/homes" element={<MainPage />} /> {/* Route for ProfilePage */}
-
+          <Route path="/payment" element={<Elements stripe={stripePromise}><PaymentForm /></Elements>}/>
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
         </Routes>
       </div>
     </Router>

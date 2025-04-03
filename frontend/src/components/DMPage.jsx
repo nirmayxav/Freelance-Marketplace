@@ -68,8 +68,10 @@ const DMPage = () => {
     const fetchConversations = async () => {
       try {
         const res = await fetch('http://localhost:5001/api/conversations', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` 
+        }
         });
+        
         const { data } = await res.json();
         setConversations(data);
       } catch (err) {

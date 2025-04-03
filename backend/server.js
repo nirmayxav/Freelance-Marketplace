@@ -18,7 +18,8 @@ const userRoutes = require("./routes/userRoutes");
 const convoRoutes = require('./routes/convoRoutes');
 const getInTouchRoutes = require('./routes/GetInTouchRoutes');
 const timelineRoutes = require('./routes/timelineRoutes');
-
+const ongoingProjRoutes = require('./routes/ongoingProjRoutes');
+const paymentRoutes = require("./routes/paymentRoutes");
 
 
 dotenv.config();
@@ -47,6 +48,8 @@ app.use("/api/user", userRoutes);
 app.use("/api/conversations", convoRoutes);
 app.use('/api/getintouch', getInTouchRoutes);
 app.use('/api/timeline', timelineRoutes);
+app.use('/api/ongoing-projects', ongoingProjRoutes);
+app.use("/api/payment", paymentRoutes);
 
 const activeUsers = new Map();
 

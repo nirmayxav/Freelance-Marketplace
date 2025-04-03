@@ -125,4 +125,43 @@ router.post('/uploadProfile', protect, upload.single('profilePhoto'), async (req
   }
 });
 
+// @desc    Get user financial summary
+// @route   GET /api/user/financial
+// @access  Private
+router.get('/financial', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('coins moneyReceived moneyInEscrow');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      coins: user.coins,
+      moneyReceived: user.moneyReceived,
+      escrowMoney: user.moneyInEscrow,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @desc    Get user reviews
+// @route   GET /api/user/reviews
+// @access  Private
+router.get('/reviews', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('reviews');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user.reviews || []);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 module.exports = router;

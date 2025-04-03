@@ -1,150 +1,233 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import './OngoingProject.css';
 
 const OngoingProject = () => {
-  const navigate = useNavigate();
-  const { projectId } = useParams();
-  const [timeline, setTimeline] = useState(null);
+  const [applicantProjects, setApplicantProjects] = useState([]);
+  const [clientProjects, setClientProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [code, setCode] = useState('');
-  const [submissions, setSubmissions] = useState([]);
-  const [isAccepted, setIsAccepted] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState(null);  // State to store the selected payment method
-  const [currentMilestoneIndex, setCurrentMilestoneIndex] = useState(0);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+  const [applicantSubmissions, setApplicantSubmissions] = useState({});
 
-  // Fetch timeline (ongoing project) details from the backend
+  const navigateToHome = () => navigate('/homes');
+  const navigateToChat = () => navigate('/chat');
+  const navigateTopost = () => navigate('/post');
+  const navigateContact = () => navigate('/contact');
+  const navigateToAbout = () => navigate('/abt');
+  const navigateToContact = () => navigate('/contact');
+  const navigateToProfile = () => navigate('/profile');
+  const user = JSON.parse(localStorage.getItem("user"));
+  const userId = user?.id;
+
   useEffect(() => {
-    const fetchTimeline = async () => {
+    const fetchApplicantProjects = async () => {
       try {
-        const res = await fetch(`http://localhost:5001/api/timeline/${projectId}`, {
+        const res = await fetch(`http://localhost:5001/api/ongoing-projects/applicant/${userId}`, {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${localStorage.getItem('token')}`,
           },
         });
-        if (res.ok) {
-          const data = await res.json();
-          setTimeline(data.timeline);
-          if (data.timeline.status === 'accepted' || data.timeline.status === 'in-progress') {
-            setIsAccepted(true);
-            setCurrentMilestoneIndex(data.timeline.milestones.findIndex(milestone => milestone.status === 'in-progress'));
-          }
+        const data = await res.json();
+        if (data.success) {
+          setApplicantProjects(data.timelines);
         } else {
-          setTimeline(null);
+          setError(data.message || "Error fetching applicant projects");
         }
-      } catch (error) {
-        console.error('Error fetching timeline:', error);
-        setTimeline(null);
-      } finally {
-        setLoading(false);
+      } catch (err) {
+        setError(err.message);
       }
     };
-    fetchTimeline();
-  }, [projectId]);
 
-  const handleCodeSubmit = (e) => {
-    e.preventDefault();
-    if (code.trim()) {
-      const newSubmission = {
-        id: submissions.length + 1,
-        code,
-        timestamp: new Date().toLocaleString(),
-        status: 'Pending Review',
-      };
-      setSubmissions([...submissions, newSubmission]);
-      setCode('');
+    const fetchClientProjects = async () => {
+      try {
+        const res = await fetch(`http://localhost:5001/api/ongoing-projects/client/${userId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        const data = await res.json();
+        if (data.success) {
+          setClientProjects(data.timelines);
+        } else {
+          setError(data.message || "Error fetching client projects");
+        }
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+
+    Promise.all([fetchApplicantProjects(), fetchClientProjects()])
+      .then(() => setLoading(false))
+      .catch(() => setLoading(false));
+  }, [userId]);
+
+  const handleApplicantSubmit = async (timelineId) => {
+    const submissionText = applicantSubmissions[timelineId];
+    try {
+      const res = await fetch(`http://localhost:5001/api/ongoing-projects/${timelineId}/submit`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ submission: submissionText }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("Submission updated!");
+      } else {
+        alert("Error updating submission: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating submission");
     }
   };
 
-  const handleAccept = async () => {
-    if (timeline.milestones.length - 1 === currentMilestoneIndex) {
-      // If this is the last milestone, mark the project as completed
-      setIsAccepted(false);
-      alert('Project completed! Payment will be released.');
-      navigate('/payment');  // Redirect to payment page
-      return;
-    }
+  const handleClientAccept = async (timeline) => {
+    try {
+      const res = await fetch(`http://localhost:5001/api/ongoing-projects/${timeline._id}/accept`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
 
-    // Move to the next milestone
-    const res = await fetch(`http://localhost:5001/api/timeline/${projectId}/milestone`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: JSON.stringify({ milestoneIndex: currentMilestoneIndex + 1 }),
-    });
-
-    const data = await res.json();
-    if (data.success) {
-      setCurrentMilestoneIndex(currentMilestoneIndex + 1);
-      setTimeline(data.timeline);
-    } else {
-      console.error('Error updating milestone:', data.message);
+      const data = await res.json();
+      if (data.success) {
+        alert("Submission accepted!");
+        localStorage.setItem("jobId", timeline.jobId?._id || timeline.jobId);
+        localStorage.setItem("freelancerId", timeline.applicant);
+        navigate("/payment", {
+          state: { timeline },
+        });
+      } else {
+        alert("Error accepting submission: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error accepting submission");
     }
   };
-
-  const handlePaymentMethod = (method) => {
-    setPaymentMethod(method);
-    console.log("Payment Method Selected: ", method);
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/");
   };
-
-  if (loading) {
-    return <p>Loading...</p>;
-  }
-
-  if (!timeline) {
-    return (
-      <div className="ongoing-project">
-        <h1>No ongoing projects</h1>
-      </div>
-    );
-  }
+  if (loading) return <p>Loading ongoing projects...</p>;
 
   return (
     <div className="ongoing-project">
-      <h1>Ongoing Project: Project #{projectId}</h1>
+       <div className="header">
+        <img src="images/image10.png" alt="User" />
+        <div className="header-right">
+        <span onClick={() => navigate("/homes")}>Home</span>
 
-      {/* Project Timeline using milestones */}
-      <div className="project-timeline">
-        <h2>Project Timeline</h2>
-        <div className="timeline-steps">
-          {timeline.milestones && timeline.milestones.length > 0 ? (
-            timeline.milestones.map((milestone, index) => (
-              <div key={index} className={`timeline-step ${index === currentMilestoneIndex ? 'active' : 'completed'}`}>
-                <span>{milestone.description}</span>
-                {index === 0 && timeline.createdAt && (
-                  <p>Started on {new Date(timeline.createdAt).toLocaleDateString()}</p>
-                )}
-              </div>
-            ))
-          ) : (
-            <p>No timeline milestones available.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Milestone Review Section */}
-      {isAccepted && currentMilestoneIndex < timeline.milestones.length - 1 && (
-        <div className="acceptance-section">
-          <h2>Accept Project</h2>
-          <p>Review the current milestone and click below to accept the project.</p>
-          <button onClick={handleAccept} className="accept-button">
-            ✅ Accept Milestone
+          <span onClick={() => navigate("/profile")}>Profile</span>
+          <span onClick={() => navigate("/chat")}>Chat</span>
+          <span onClick={() => navigate("/post")}>Post a Job</span>
+          <span onClick={() => navigate("/abt")}>About Us</span>
+          <span onClick={() => navigate("/contact")}>Contact Us</span>
+          
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
           </button>
         </div>
-      )}
+      </div>
+      <h1>Ongoing Projects</h1>
+      {error && <p className="error">{error}</p>}
 
-      {/* Payment Section */}
-      {isAccepted && currentMilestoneIndex === timeline.milestones.length - 1 && (
-        <div className="payment-selection">
-          <h2>Complete the Project</h2>
-          <p>Select a payment method to release the payment.</p>
-          <button onClick={() => handlePaymentMethod('Stripe')}>Stripe (Card Payment)</button>
-          <button onClick={() => handlePaymentMethod('Blockchain')}>Blockchain (Crypto)</button>
-        </div>
-      )}
+      {/* Applicant Section */}
+      <div className="important-features">
+        <h2>Projects as Applicant</h2>
+        {applicantProjects.length > 0 ? (
+          applicantProjects.map((timeline) => (
+            <div key={timeline._id} className="submission-item">
+              <h3>Project: <b>{timeline.jobId?.title || "Untitled Project"}</b></h3>
+              <div className="project-timeline">
+                <h4>Project Timeline</h4>
+                <div className="timeline-steps">
+                  {timeline.milestones?.length > 0 ? (
+                    timeline.milestones.map((milestone, index) => (
+                      <div key={index} className="timeline-step">
+                        <span>{milestone.description}</span>
+                        {index === 0 && timeline.createdAt && (
+                          <p>Started on {new Date(timeline.createdAt).toLocaleDateString()}</p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p>No timeline milestones available.</p>
+                  )}
+                </div>
+              </div>
+              <div className="code-submission">
+                <h4>Your Submission</h4>
+                <textarea
+                  rows={3}
+                  placeholder="Enter text or GitHub link"
+                  value={applicantSubmissions[timeline._id] || ""}
+                  onChange={(e) =>
+                    setApplicantSubmissions({
+                      ...applicantSubmissions,
+                      [timeline._id]: e.target.value,
+                    })
+                  }
+                />
+                <button onClick={() => handleApplicantSubmit(timeline._id)}>Submit</button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p>No ongoing project as applicant.</p>
+        )}
+      </div>
+
+      {/* Client Section */}
+      <div className="important-features">
+        <h2>Projects as Client</h2>
+        {clientProjects.length > 0 ? (
+          clientProjects.map((timeline) => (
+            <div key={timeline._id} className="submission-item">
+              <h3>Project: <b>{timeline.jobId?.title || "Untitled Project"}</b></h3>
+              <div className="project-timeline">
+                <h4>Project Timeline</h4>
+                <div className="timeline-steps">
+                  {timeline.milestones?.length > 0 ? (
+                    timeline.milestones.map((milestone, index) => (
+                      <div key={index} className="timeline-step">
+                        <span>{milestone.description}</span>
+                        {index === 0 && timeline.createdAt && (
+                          <p>Started on {new Date(timeline.createdAt).toLocaleDateString()}</p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p>No timeline milestones available.</p>
+                  )}
+                </div>
+              </div>
+              <div className="acceptance-section">
+                <h4>Applicant Submission</h4>
+                <textarea
+                  readOnly
+                  rows={3}
+                  placeholder="No submission provided"
+                  value={timeline.applicantSubmission || ""}
+                />
+                <button className="accept-button" onClick={() => handleClientAccept(timeline)}>Accept</button>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p>No ongoing project as client.</p>
+        )}
+      </div>
     </div>
   );
 };

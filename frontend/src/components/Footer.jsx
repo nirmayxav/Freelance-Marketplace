@@ -1,26 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import './Footer.css'; // optional: if you want styling
 
 const Footer = () => {
   const navigate = useNavigate();
 
-  const navigateToAbout = () => {
-    navigate('/abt');
-  };
-
-  const navigateToContact = () => {
-    navigate('/contact');
-  };
-
   return (
-    <footer className="reveal">
+    <footer className="footer reveal">
       <p>© 2025 The Freelance Marketplace</p>
-      <br />
-      <br />
-      <a onClick={navigateToAbout}>About </a>
-      <a href="/terms">Terms </a>
-      <a onClick={navigateToContact}>Contact </a>
-      <a href="/privacy">Privacy </a>
+      <div className="footer-links">
+        <span onClick={() => navigate('/abt')}>About</span>
+        <span onClick={() => navigate('/terms')}>Terms</span>
+        <span onClick={() => navigate('/contact')}>Contact</span>
+        <span onClick={() => navigate('/privacy')}>Privacy</span>
+      </div>
     </footer>
   );
 };
