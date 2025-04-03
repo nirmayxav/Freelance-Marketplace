@@ -11,6 +11,7 @@ const OngoingProject = () => {
   const [submissions, setSubmissions] = useState([]);
   const [isAccepted, setIsAccepted] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(null);  // State to store the selected payment method
+  const [currentMilestoneIndex, setCurrentMilestoneIndex] = useState(0);
 
   // Fetch timeline (ongoing project) details from the backend
   useEffect(() => {
@@ -27,6 +28,7 @@ const OngoingProject = () => {
           setTimeline(data.timeline);
           if (data.timeline.status === 'accepted' || data.timeline.status === 'in-progress') {
             setIsAccepted(true);
+            setCurrentMilestoneIndex(data.timeline.milestones.findIndex(milestone => milestone.status === 'in-progress'));
           }
         } else {
           setTimeline(null);
@@ -40,14 +42,6 @@ const OngoingProject = () => {
     };
     fetchTimeline();
   }, [projectId]);
-
-  // Navigation functions (unchanged)
-  const navigateToHome = () => { navigate('/homes'); };
-  const navigateToChat = () => { navigate('/chat'); };
-  const navigateToProfile = () => { navigate('/profile'); };
-  const navigateToPost = () => { navigate('/post'); };
-  const navigateContact = () => { navigate('/contact'); };
-  const navigateToAbout = () => { navigate('/abt'); };
 
   const handleCodeSubmit = (e) => {
     e.preventDefault();
@@ -63,12 +57,34 @@ const OngoingProject = () => {
     }
   };
 
-  const handleAccept = () => {
-    setIsAccepted(true);
-    alert('Project accepted! Payment will be released.');
+  const handleAccept = async () => {
+    if (timeline.milestones.length - 1 === currentMilestoneIndex) {
+      // If this is the last milestone, mark the project as completed
+      setIsAccepted(false);
+      alert('Project completed! Payment will be released.');
+      navigate('/payment');  // Redirect to payment page
+      return;
+    }
+
+    // Move to the next milestone
+    const res = await fetch(`http://localhost:5001/api/timeline/${projectId}/milestone`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: JSON.stringify({ milestoneIndex: currentMilestoneIndex + 1 }),
+    });
+
+    const data = await res.json();
+    if (data.success) {
+      setCurrentMilestoneIndex(currentMilestoneIndex + 1);
+      setTimeline(data.timeline);
+    } else {
+      console.error('Error updating milestone:', data.message);
+    }
   };
 
-  // Handle payment method selection
   const handlePaymentMethod = (method) => {
     setPaymentMethod(method);
     console.log("Payment Method Selected: ", method);
@@ -81,18 +97,6 @@ const OngoingProject = () => {
   if (!timeline) {
     return (
       <div className="ongoing-project">
-        <div className="header">
-          <img src='images/image10.png' alt="User" />
-          <div className="header-right">
-            <span onClick={navigateToHome}>Home</span>
-            <span onClick={navigateToProfile}>Profile</span>
-            <span onClick={navigateToChat}>Chat</span>
-            <span onClick={navigateContact}>Contact Us</span>
-            <span onClick={navigateToAbout}>About</span>
-            <span onClick={navigateToPost}>Post a Job</span>
-            <span>Settings</span>
-          </div>
-        </div>
         <h1>No ongoing projects</h1>
       </div>
     );
@@ -100,18 +104,6 @@ const OngoingProject = () => {
 
   return (
     <div className="ongoing-project">
-      <div className="header">
-        <img src='images/image10.png' alt="User" />
-        <div className="header-right">
-          <span onClick={navigateToHome}>Home</span>
-          <span onClick={navigateToProfile}>Profile</span>
-          <span onClick={navigateToChat}>Chat</span>
-          <span onClick={navigateContact}>Contact Us</span>
-          <span onClick={navigateToAbout}>About</span>
-          <span onClick={navigateToPost}>Post a Job</span>
-          <span>Settings</span>
-        </div>
-      </div>
       <h1>Ongoing Project: Project #{projectId}</h1>
 
       {/* Project Timeline using milestones */}
@@ -120,7 +112,7 @@ const OngoingProject = () => {
         <div className="timeline-steps">
           {timeline.milestones && timeline.milestones.length > 0 ? (
             timeline.milestones.map((milestone, index) => (
-              <div key={index} className={`timeline-step ${index === timeline.milestones.length - 1 ? 'active' : 'completed'}`}>
+              <div key={index} className={`timeline-step ${index === currentMilestoneIndex ? 'active' : 'completed'}`}>
                 <span>{milestone.description}</span>
                 {index === 0 && timeline.createdAt && (
                   <p>Started on {new Date(timeline.createdAt).toLocaleDateString()}</p>
@@ -133,83 +125,24 @@ const OngoingProject = () => {
         </div>
       </div>
 
-      {/* Important Features based on milestone descriptions */}
-      <div className="important-features">
-        <h2>Important Features</h2>
-        <ul>
-          {timeline.milestones && timeline.milestones.length > 0 ? (
-            timeline.milestones.map((milestone, index) => (
-              <li key={index}>{milestone.description}</li>
-            ))
-          ) : (
-            <p>No important features defined.</p>
-          )}
-        </ul>
-      </div>
-
-      {/* Code Submission Section */}
-      <div className="code-submission">
-        <h2>Code Submission</h2>
-        <form onSubmit={handleCodeSubmit}>
-          <textarea
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            placeholder="Paste your code here..."
-            rows={10}
-            required
-          />
-          <button type="submit">Submit Code</button>
-        </form>
-      </div>
-
-      {/* Submissions History */}
-      <div className="submissions-history">
-        <h2>Submissions History</h2>
-        {submissions.length > 0 ? (
-          submissions.map((submission) => (
-            <div key={submission.id} className="submission-item">
-              <p><strong>Submitted on:</strong> {submission.timestamp}</p>
-              <pre>{submission.code}</pre>
-              <p><strong>Status:</strong> {submission.status}</p>
-            </div>
-          ))
-        ) : (
-          <p>No submissions yet.</p>
-        )}
-      </div>
-
-      {/* Payment Method Selection */}
-      {!paymentMethod && !isAccepted && (
-        <div className="payment-selection">
-          <h2>Select Payment Method</h2>
-          <button onClick={() => handlePaymentMethod('Stripe')}>Stripe (Card Payment)</button>
-          <button onClick={() => handlePaymentMethod('Blockchain')}>Blockchain (Crypto)</button>
-        </div>
-      )}
-
-      {/* Payment Information Display */}
-      {paymentMethod && !isAccepted && (
-        <div className="payment-method">
-          <p>Payment Method Selected: {paymentMethod}</p>
-          {/* Add additional payment steps if needed, like Stripe integration or Blockchain wallet */}
-        </div>
-      )}
-
-      {/* Acceptance Section */}
-      {!isAccepted && paymentMethod && (
+      {/* Milestone Review Section */}
+      {isAccepted && currentMilestoneIndex < timeline.milestones.length - 1 && (
         <div className="acceptance-section">
           <h2>Accept Project</h2>
-          <p>Review the code and click below to accept the project.</p>
+          <p>Review the current milestone and click below to accept the project.</p>
           <button onClick={handleAccept} className="accept-button">
-            ✅ Accept Project
+            ✅ Accept Milestone
           </button>
         </div>
       )}
 
-      {isAccepted && (
-        <div className="acceptance-confirmation">
-          <h2>Project Accepted!</h2>
-          <p>Payment will be released as per the agreed terms.</p>
+      {/* Payment Section */}
+      {isAccepted && currentMilestoneIndex === timeline.milestones.length - 1 && (
+        <div className="payment-selection">
+          <h2>Complete the Project</h2>
+          <p>Select a payment method to release the payment.</p>
+          <button onClick={() => handlePaymentMethod('Stripe')}>Stripe (Card Payment)</button>
+          <button onClick={() => handlePaymentMethod('Blockchain')}>Blockchain (Crypto)</button>
         </div>
       )}
     </div>

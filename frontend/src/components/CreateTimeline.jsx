@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import './CreateTimeline.css';
 
 const CreateTimeline = () => {
-  const location = useLocation();
-  const acceptedConversation = location.state?.conversation;
+  // Initialize hooks unconditionally
   const [formData, setFormData] = useState({
-    paymentMode: 'full',
+    paymentMode: 'full',       // Options: 'full', 'milestone', 'hourly'
     totalAmount: '',
     milestones: [{ description: '', amount: '', trigger: '' }],
-    escrowEnabled: true
+    escrowEnabled: true,
+    paymentType: 'stripe',     // Options: 'stripe', 'blockchain', 'other'
   });
+
   const [currentStep, setCurrentStep] = useState(1);
   const navigate = useNavigate();
+
+  // Retrieve the selected conversation from localStorage
+  const selectedConversation = JSON.parse(localStorage.getItem('selectedConversation'));
+
+  // If selectedConversation is not found, handle the error.
+  if (!selectedConversation) {
+    alert('No selected conversation found!');
+    return null;
+  }
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -24,72 +34,111 @@ const CreateTimeline = () => {
     setFormData({ ...formData, milestones: newMilestones });
   };
 
+  // Allow adding a milestone only if the payment mode is "milestone"
   const addMilestone = () => {
-    setFormData({
-      ...formData,
-      milestones: [...formData.milestones, { description: '', amount: '', trigger: '' }]
-    });
+    if (formData.paymentMode === 'milestone') {
+      setFormData({
+        ...formData,
+        milestones: [...formData.milestones, { description: '', amount: '', trigger: '' }],
+      });
+    }
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
-    // Fetch the conversation data
-    const conversationId = 'someConversationId'; // Get the conversationId from context, state, or as a prop
-  
-    // Ensure conversation data is available
-    if (!conversationId) {
+
+    // Validate that the conversation exists
+    if (!selectedConversation) {
       alert('Conversation not found!');
       return;
     }
-  
-    const fetchConversation = async () => {
-      try {
-        const res = await fetch(`http://localhost:5001/api/conversations/${conversationId}`, {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        const data = await res.json();
-        if (data.success) {
-          const conversation = data.conversation;
-          
-          const client = conversation.participants.find(p => p._id !== acceptedConversation.applicant);
-          const applicant = conversation.participants.find(p => p._id === acceptedConversation.applicant);
-  
-          const requestData = {
-            ...formData,
-            conversationId: conversation._id,
-            client,
-            applicant
-          };
-  
-          // Proceed to send the request to the backend to create the timeline
-          const res = await fetch('http://localhost:5001/api/timeline', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify(requestData)
-          });
-  
-          const result = await res.json();
-          if (result.success) {
-            navigate('/chat');
-          }
-        } else {
-          console.error("Error fetching conversation data", data.message);
-        }
-      } catch (error) {
-        console.error('Error fetching conversation:', error);
+
+    // Validate milestones (add your own validation as needed)
+    for (let milestone of formData.milestones) {
+      if (!milestone.description || !milestone.amount || !milestone.trigger) {
+        alert('Please fill in all milestone fields.');
+        return;
       }
+    }
+
+    // For full or hourly, enforce only one milestone.
+    if ((formData.paymentMode === 'full' || formData.paymentMode === 'hourly') && formData.milestones.length > 1) {
+      alert('Only one milestone is allowed for full or hourly payment modes.');
+      return;
+    }
+
+    // Freeze the payment mode into a variable only when submitting
+    const finalPaymentMode = formData.paymentMode;
+
+    // Compute total amount from milestone amounts if not provided.
+    const computedTotal = formData.milestones.reduce(
+      (sum, milestone) => sum + Number(milestone.amount),
+      0
+    );
+
+    // Prepare requestData with job id added, using the finalPaymentMode
+    const requestData = {
+      ...formData,
+      conversationId: selectedConversation._id,
+      applicant: selectedConversation.participants[0]._id, // Ensure you're sending just the id
+      client: JSON.parse(localStorage.getItem("user")).id,   // Ensure you're sending just the id
+      paymentMode: finalPaymentMode,                         // Using the variable stored on submission
+      paymentType: formData.paymentType,                     // 'stripe', 'blockchain', or 'other'
+      totalAmount: formData.totalAmount || computedTotal,
+      jobId: selectedConversation.jobId._id,                 // Store job id from selected conversation
     };
-  
-    fetchConversation();
+
+    try {
+      const res = await fetch('http://localhost:5001/api/timeline', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify(requestData),
+      });
+      const jobId = selectedConversation.jobId._id;
+      const currentConversationId = selectedConversation._id;
+
+      const result = await res.json();
+      if (result.success) {
+        try {
+          const deleteRes = await fetch(
+            `http://localhost:5001/api/conversations?jobId=${jobId}&exclude=${currentConversationId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('token')}`,
+              },
+            }
+          );
+
+          const contentType = deleteRes.headers.get('content-type');
+          let deleteResult;
+          if (contentType && contentType.includes('application/json')) {
+            deleteResult = await deleteRes.json();
+          } else {
+            // Fallback to text if the response is not JSON
+            deleteResult = await deleteRes.text();
+            console.error('Delete endpoint did not return JSON:', deleteResult);
+          }
+          if (!deleteResult.success) {
+            console.error("Error deleting extra conversations:", deleteResult.message);
+          }
+        } catch (deleteError) {
+          console.error("Error deleting extra conversations:", deleteError);
+        }
+        console.log("Deleted the extra conversations");
+        navigate('/chat');
+      } else {
+        console.error("Error creating timeline:", result.message);
+      }
+    } catch (error) {
+      console.error('Error creating timeline:', error);
+    }
   };
-  
-  
+
   return (
     <div className="timeline-container">
       <div className="header">
@@ -97,11 +146,22 @@ const CreateTimeline = () => {
       </div>
       <div className="timeline-stepper">
         <div className={`step ${currentStep === 1 ? 'active' : ''}`}>1. Payment Mode</div>
-        <div className={`step ${currentStep === 2 ? 'active' : ''}`}>2. Timeline & Escrow</div>
-        <div className={`step ${currentStep === 3 ? 'active' : ''}`}>3. Review</div>
+        <div className={`step ${currentStep === 2 ? 'active' : ''}`}>2. Payment Type</div>
+        <div className={`step ${currentStep === 3 ? 'active' : ''}`}>3. Timeline & Escrow</div>
+        <div className={`step ${currentStep === 4 ? 'active' : ''}`}>4. Review</div>
       </div>
 
-      <form onSubmit={handleSubmit} className="timeline-form">
+      <form 
+        onSubmit={handleSubmit} 
+        className="timeline-form"
+        onKeyDown={(e) => {
+          // Prevent Enter from submitting the form if not on the final step.
+          if (e.key === "Enter" && currentStep !== 4) {
+            e.preventDefault();
+          }
+        }}
+      >
+        {/* Step 1: Payment Mode */}
         {currentStep === 1 && (
           <div className="form-step">
             <h2>Select Payment Mode</h2>
@@ -119,7 +179,6 @@ const CreateTimeline = () => {
                   <p>Receive full amount upon project completion</p>
                 </div>
               </label>
-
               <label className="payment-card">
                 <input
                   type="radio"
@@ -133,7 +192,6 @@ const CreateTimeline = () => {
                   <p>Split payment into project phases</p>
                 </div>
               </label>
-
               <label className="payment-card">
                 <input
                   type="radio"
@@ -151,7 +209,43 @@ const CreateTimeline = () => {
           </div>
         )}
 
+        {/* Step 2: Payment Type */}
         {currentStep === 2 && (
+          <div className="form-step">
+            <h2>Select Payment Type</h2>
+            <div className="payment-options">
+              <label className="payment-method-card">
+                <input
+                  type="radio"
+                  name="paymentType"
+                  value="stripe"
+                  checked={formData.paymentType === 'stripe'}
+                  onChange={handleChange}
+                />
+                <div className="card-content">
+                  <h3>Card Payment (Stripe)</h3>
+                  <p>Pay with a card through Stripe</p>
+                </div>
+              </label>
+              <label className="payment-method-card">
+                <input
+                  type="radio"
+                  name="paymentType"
+                  value="blockchain"
+                  checked={formData.paymentType === 'blockchain'}
+                  onChange={handleChange}
+                />
+                <div className="card-content">
+                  <h3>Blockchain (Crypto)</h3>
+                  <p>Pay with cryptocurrency</p>
+                </div>
+              </label>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Timeline & Escrow */}
+        {currentStep === 3 && (
           <div className="form-step">
             <h2>Define Timeline & Escrow</h2>
             <div className="escrow-toggle">
@@ -161,66 +255,77 @@ const CreateTimeline = () => {
                   name="escrowEnabled"
                   checked={formData.escrowEnabled}
                   onChange={(e) => setFormData({ ...formData, escrowEnabled: e.target.checked })}
+                  disabled={formData.paymentMode === 'milestone'} 
                 />
                 Enable Escrow Payments
               </label>
             </div>
 
-            {formData.paymentMode === 'milestone' && (
-              <div className="milestones-section">
-                {formData.milestones.map((milestone, index) => (
-                  <div key={index} className="milestone-card">
-                    <h3>Milestone {index + 1}</h3>
-                    <input
-                      type="text"
-                      placeholder="Description (e.g., Design Approval)"
-                      name="description"
-                      value={milestone.description}
-                      onChange={(e) => handleMilestoneChange(index, e)}
-                      required
-                    />
-                    <input
-                      type="number"
-                      placeholder="Amount"
-                      name="amount"
-                      value={milestone.amount}
-                      onChange={(e) => handleMilestoneChange(index, e)}
-                      required
-                    />
-                    <textarea
-                      placeholder="Completion Criteria"
-                      name="trigger"
-                      value={milestone.trigger}
-                      onChange={(e) => handleMilestoneChange(index, e)}
-                      required
-                    />
-                  </div>
-                ))}
+            {/* Milestone Section: Always visible */}
+            <div className="milestones-section">
+              {formData.milestones.map((milestone, index) => (
+                <div key={index} className="milestone-card">
+                  <h3>
+                    {formData.paymentMode === 'milestone'
+                      ? `Milestone ${index + 1}`
+                      : `${formData.paymentMode.charAt(0).toUpperCase() + formData.paymentMode.slice(1)} Payment`}
+                  </h3>
+                  <input
+                    type="text"
+                    placeholder="Description (e.g., Design Approval)"
+                    name="description"
+                    value={milestone.description}
+                    onChange={(e) => handleMilestoneChange(index, e)}
+                    required
+                  />
+                  <input
+                    type="number"
+                    placeholder="Amount"
+                    name="amount"
+                    value={milestone.amount}
+                    onChange={(e) => handleMilestoneChange(index, e)}
+                    required
+                  />
+                  <textarea
+                    placeholder="Completion Criteria"
+                    name="trigger"
+                    value={milestone.trigger}
+                    onChange={(e) => handleMilestoneChange(index, e)}
+                    required
+                  />
+                </div>
+              ))}
+              {/* Only allow adding more milestones for milestone mode */}
+              {formData.paymentMode === 'milestone' && (
                 <button type="button" onClick={addMilestone} className="add-milestone">
                   + Add Milestone
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
-        {currentStep === 3 && (
+        {/* Step 4: Review */}
+        {currentStep === 4 && (
           <div className="form-step">
             <h2>Review Proposal</h2>
             <div className="review-section">
               <h3>Payment Mode: {formData.paymentMode}</h3>
-              {formData.paymentMode === 'milestone' && (
-                <div className="milestone-review">
-                  {formData.milestones.map((milestone, index) => (
-                    <div key={index} className="milestone-item">
-                      <h4>Milestone {index + 1}</h4>
-                      <p>Description: {milestone.description}</p>
-                      <p>Amount: ${milestone.amount}</p>
-                      <p>Trigger: {milestone.trigger}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <h3>Payment Type: {formData.paymentType}</h3>
+              <div className="milestone-review">
+                {formData.milestones.map((milestone, index) => (
+                  <div key={index} className="milestone-item">
+                    <h4>
+                      {formData.paymentMode === 'milestone'
+                        ? `Milestone ${index + 1}`
+                        : `${formData.paymentMode.charAt(0).toUpperCase() + formData.paymentMode.slice(1)} Payment`}
+                    </h4>
+                    <p>Description: {milestone.description}</p>
+                    <p>Amount: ${milestone.amount}</p>
+                    <p>Trigger: {milestone.trigger}</p>
+                  </div>
+                ))}
+              </div>
               <div className="escrow-status">
                 <h3>Escrow: {formData.escrowEnabled ? 'Enabled' : 'Disabled'}</h3>
               </div>
@@ -234,7 +339,7 @@ const CreateTimeline = () => {
               Back
             </button>
           )}
-          {currentStep < 3 ? (
+          {currentStep < 4 ? (
             <button type="button" onClick={() => setCurrentStep(currentStep + 1)}>
               Next
             </button>

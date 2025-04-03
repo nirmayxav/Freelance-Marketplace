@@ -7,7 +7,8 @@ const ApplicationSchema = new mongoose.Schema({
   message: { type: String, required: true },
   counterOffer: { type: Number, default: null },
   status: { type: String, enum: ["pending", "accepted", "rejected"], default: "pending" },
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
+  conversationId: { type: mongoose.Schema.Types.ObjectId, ref: "Conversation" } // Added reference to Conversation
 });
 
 const Application = mongoose.model("Application", ApplicationSchema);

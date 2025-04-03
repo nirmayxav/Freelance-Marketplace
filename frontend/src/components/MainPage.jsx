@@ -18,9 +18,14 @@ const MainPage = () => {
   // Retrieve logged-in user from localStorage
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user"));
-    if (storedUser) setCurrentUser(storedUser);
+    if (storedUser) {
+      setCurrentUser(storedUser);
+      console.log("Current user:", storedUser);
+    } else {
+      console.log("No user found in localStorage.");
+    }
   }, []);
-
+  
   // Fetch jobs from backend
   useEffect(() => {
     fetchJobs();

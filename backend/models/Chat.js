@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
 
 const ChatSchema = new mongoose.Schema({
-  
   sender: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 
@@ -27,7 +26,16 @@ const ChatSchema = new mongoose.Schema({
     type: Date, 
     default: Date.now 
   },
-  jobId: { type: mongoose.Schema.Types.ObjectId, ref: 'Job', required: true } // Added jobId
+  jobId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Job', 
+    required: true 
+  },
+  conversationId: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'Conversation', 
+    required: true  // Added reference to Conversation
+  }
 });
 
 module.exports = mongoose.model('Chat', ChatSchema);

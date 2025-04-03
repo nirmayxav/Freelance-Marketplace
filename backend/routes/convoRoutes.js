@@ -5,6 +5,7 @@ const Chat = require('../models/Chat');
 const mongoose = require('mongoose');
 const protect = require('../middlewares/authMiddleware');
 
+// Apply authentication middleware to all routes in this file.
 router.use(protect);
 
 // @desc   Get conversation by ID
@@ -178,6 +179,29 @@ router.post('/create', async (req, res) => {
   } catch (error) {
     console.error("Error creating or fetching conversation:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// @desc   Delete conversations for a specific job, excluding a particular conversation
+// @route  DELETE /api/conversations?jobId=...&exclude=...
+// @access Private
+router.delete('/', protect, async (req, res) => {
+  try {
+    const { jobId, exclude } = req.query;
+    if (!jobId || !exclude) {
+      return res.status(400).json({ success: false, message: 'jobId and exclude are required' });
+    }
+
+    // Delete conversations with matching jobId except the one to exclude
+    const result = await Conversation.deleteMany({
+      jobId: jobId,
+      _id: { $ne: exclude },
+    });
+
+    res.json({ success: true, deletedCount: result.deletedCount });
+  } catch (error) {
+    console.error("Error deleting conversations:", error);
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

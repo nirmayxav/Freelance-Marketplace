@@ -17,7 +17,6 @@ const TimelineSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
-    // Optionally store a job reference if applicable
     jobId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Job',
@@ -26,6 +25,11 @@ const TimelineSchema = new mongoose.Schema(
       type: String,
       enum: ['full', 'milestone', 'hourly'],
       default: 'full',
+      required: true,
+    },
+    paymentType: {
+      type: String,
+      enum: ['stripe', 'blockchain', 'other'],
       required: true,
     },
     totalAmount: {
@@ -39,11 +43,9 @@ const TimelineSchema = new mongoose.Schema(
       {
         description: { type: String, required: true },
         amount: { type: Number, required: true },
-        // This field acts as the "completion criteria" for the milestone
         trigger: { type: String, required: true },
       },
     ],
-    // Timeline status: 'proposal' (default), 'accepted', 'in-progress', 'completed'
     status: {
       type: String,
       enum: ['proposal', 'accepted', 'in-progress', 'completed'],
