@@ -26,6 +26,7 @@ router.post("/register", async (req, res) => {
             username: username.trim(),
             email: email.trim(),
             password, // Mongoose will hash it automatically
+            walletAddress: walletAddress?.trim() || null
         });
 
         await user.save();
@@ -37,7 +38,7 @@ router.post("/register", async (req, res) => {
         res.status(201).json({
             message: "User registered successfully",
             token,
-            user: { id: user._id, username: user.username, email: user.email },
+            user: { id: user._id, username: user.username, email: user.email, walletAddress: user.walletAddress },
         });
     } catch (error) {
         console.error(error);

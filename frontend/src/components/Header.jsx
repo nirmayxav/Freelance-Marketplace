@@ -9,7 +9,12 @@ const Header = () => {
   const [showSignup, setShowSignup] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [signupData, setSignupData] = useState({ username: '', email: '', password: '' });
+  const [signupData, setSignupData] = useState({
+    username: '',
+    email: '',
+    password: '',
+    walletAddress: ''
+  });
   const [forgotEmail, setForgotEmail] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
@@ -26,6 +31,21 @@ const Header = () => {
     setForgotEmail(e.target.value);
   };
 
+  const handleConnectWallet = async () => {
+    if (window.ethereum) {
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+        const wallet = accounts[0];
+        setSignupData((prev) => ({ ...prev, walletAddress: wallet }));
+      } catch (err) {
+        console.error("MetaMask connection failed:", err);
+        setError("Failed to connect MetaMask.");
+      }
+    } else {
+      setError("MetaMask not detected. Please install it.");
+    }
+  };
+
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -34,14 +54,13 @@ const Header = () => {
         email: loginData.email.trim(),
         password: loginData.password.trim(),
       });
-      
+
       console.log('Login successful:', response.data);
       const { token, user } = response.data;
-      
-      // Store token and user data
+
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-  
+
       setShowLogin(false);
       navigate('/main');
     } catch (error) {
@@ -49,7 +68,6 @@ const Header = () => {
       setError(error.response?.data?.error || 'Login failed. Please try again.');
     }
   };
-  
 
   const handleSignupSubmit = async (e) => {
     e.preventDefault();
@@ -59,7 +77,9 @@ const Header = () => {
         username: signupData.username.trim(),
         email: signupData.email.trim(),
         password: signupData.password.trim(),
+        walletAddress: signupData.walletAddress?.trim() || null
       });
+
       console.log('Signup successful:', response.data);
       setShowSignup(false);
       setShowLogin(true);
@@ -97,6 +117,7 @@ const Header = () => {
         </button>
       </div>
 
+      {/* LOGIN POPUP */}
       {showLogin && (
         <div className="popup-overlay">
           <div className="form-container">
@@ -129,6 +150,7 @@ const Header = () => {
         </div>
       )}
 
+      {/* SIGNUP POPUP */}
       {showSignup && (
         <div className="popup-overlay">
           <div className="form-container">
@@ -147,6 +169,25 @@ const Header = () => {
                 <label htmlFor="password">Password</label>
                 <input type="password" id="password" placeholder="Enter your password" value={signupData.password} onChange={handleSignupChange} required />
               </div>
+              <div className="input-group">
+                <label>Wallet Address</label>
+                {signupData.walletAddress ? (
+                  <input
+                    type="text"
+                    value={signupData.walletAddress}
+                    readOnly
+                    className="bg-gray-100"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleConnectWallet}
+                    className="bg-purple-600 text-white px-3 py-2 rounded"
+                  >
+                    Connect MetaMask
+                  </button>
+                )}
+              </div>
               <button type="submit" className="sign signup-button">Sign Up</button>
             </form>
             <div className="signup">
@@ -162,10 +203,11 @@ const Header = () => {
         </div>
       )}
 
+      {/* FORGOT PASSWORD POPUP */}
       {showForgotPassword && (
         <div className="popup-overlay">
           <div className="form-container">
-            <br></br>
+            <br />
             <h2 className="title">Forgot Password</h2>
             {error && <p className="error-message">{error}</p>}
             {message && <p className="success-message">{message}</p>}
@@ -174,7 +216,7 @@ const Header = () => {
                 <label htmlFor="forgot-email">Email</label>
                 <input type="email" id="forgot-email" placeholder="Enter your email" value={forgotEmail} onChange={handleForgotChange} required />
               </div>
-              <br></br>
+              <br />
               <button type="submit" className="sign">Send</button>
             </form>
             <button className="close-button" onClick={() => setShowForgotPassword(false)}>&times;</button>
