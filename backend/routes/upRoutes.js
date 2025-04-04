@@ -40,4 +40,33 @@ router.put('/update-coins', protect, async (req, res) => {
   }
 });
 
+const Timeline = require("../models/Timeline");
+const Conversation = require("../models/Conversation");
+
+router.delete("/cleanup", protect, async (req, res) => {
+    const { jobId, clientId, freelancerId } = req.body;
+  
+    if (!jobId || !clientId || !freelancerId) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+  
+    try {
+      const deletedTimeline = await Timeline.findOneAndDelete({ jobId, client: clientId });
+      const deletedConversation = await Conversation.findOneAndDelete({
+        jobId,
+        participants: { $all: [clientId, freelancerId] },
+      });
+  
+      return res.status(200).json({
+        success: true,
+        message: "Timeline and conversation deleted.",
+        deletedTimeline,
+        deletedConversation,
+      });
+    } catch (err) {
+      console.error("Cleanup error:", err);
+      return res.status(500).json({ error: "Server error during cleanup." });
+    }
+  });
+
 module.exports = router;

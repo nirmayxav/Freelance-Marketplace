@@ -88,7 +88,6 @@ const PaymentForm = () => {
     if (!amount || isNaN(amount) || amount <= 0) return setError("Invalid amount.");
     if (!["full", "escrow"].includes(type)) return setError("Invalid payment type.");
     if (!clientId || !freelancerId || !jobId) return setError("Missing required IDs.");
-  
     if (![clientId, freelancerId, jobId].every(isValidObjectId)) {
       setError("Invalid ObjectId format.");
       setLoading(false);
@@ -109,21 +108,9 @@ const PaymentForm = () => {
     const rewardCoins = Math.ceil(parseFloat(amount) * 0.065);
   
     const rewardUsers = async () => {
-      console.log("🔁 Rewarding users with coins...");
-      console.log("💰 Coins to add:", rewardCoins);
-      console.log("👤 Client ID:", clientId);
-      console.log("👨‍💻 Freelancer ID:", freelancerId);
-  
       try {
-        console.log("Sending to reward API:", {
-          clientId,
-          freelancerId,
-          rewardCoins,
-          earnings: parseFloat(amount)
-        });
-        
-        const rewardRes = await axios.put(
-          "http://localhost:5001/api/rewards/update-coins", // <--- changed route
+        await axios.put(
+          "http://localhost:5001/api/rewards/update-coins",
           {
             clientId,
             freelancerId,
@@ -134,10 +121,19 @@ const PaymentForm = () => {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        
-        console.log("✅ Reward success:", rewardRes.data);
       } catch (err) {
         console.error("❌ Reward error:", err?.response?.data || err.message);
+      }
+    };
+  
+    const cleanupTimelineAndConversation = async () => {
+      try {
+        await axios.delete("http://localhost:5001/api/rewards/cleanup", {
+          headers: { Authorization: `Bearer ${token}` },
+          data: { jobId, clientId, freelancerId },
+        });
+      } catch (err) {
+        console.error("❌ Cleanup error:", err?.response?.data || err.message);
       }
     };
   
@@ -160,7 +156,9 @@ const PaymentForm = () => {
           setError(result.error.message);
         } else if (result.paymentIntent?.status === "succeeded") {
           await rewardUsers();
+          await cleanupTimelineAndConversation();
           setSuccess(true);
+          navigate("/homes"); // ✅ redirect to home
         } else {
           setError("Payment did not succeed.");
         }
@@ -203,7 +201,9 @@ const PaymentForm = () => {
         );
   
         await rewardUsers();
+        await cleanupTimelineAndConversation();
         setSuccess(true);
+        navigate("/homes"); // ✅ redirect to home
       }
     } catch (err) {
       console.error("❌ Payment Error:", err);
