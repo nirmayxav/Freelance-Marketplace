@@ -18,10 +18,7 @@ const cardStyle = {
 };
 
 const PaymentForm = () => {
-    const navigate = useNavigate();
-  
-
-
+  const navigate = useNavigate();
   const stripe = useStripe();
   const elements = useElements();
   const location = useLocation();
@@ -38,6 +35,7 @@ const PaymentForm = () => {
 
   const [clientId, setClientId] = useState(null);
   const [freelancerId, setFreelancerId] = useState(null);
+  const [freelancerWallet, setFreelancerWallet] = useState(null); // ✅ NEW
   const [jobId, setJobId] = useState(null);
 
   const passedTimeline = location.state?.timeline;
@@ -61,6 +59,9 @@ const PaymentForm = () => {
       setAmount(passedTimeline.totalAmount);
       setType(passedTimeline.escrowEnabled ? "escrow" : "full");
       setMethod(passedTimeline.paymentType === "blockchain" ? "crypto" : "stripe");
+      if (passedTimeline.freelancerWalletAddress) {
+        setFreelancerWallet(passedTimeline.freelancerWalletAddress); // ✅ NEW
+      }
     }
   }, [navigate, passedTimeline]);
 
@@ -88,9 +89,6 @@ const PaymentForm = () => {
     if (!amount || isNaN(amount) || amount <= 0) return setError("Invalid amount.");
     if (!["full", "escrow"].includes(type)) return setError("Invalid payment type.");
     if (!clientId || !freelancerId || !jobId) return setError("Missing required IDs.");
-    console.log("clientId:", clientId);
-console.log("freelancerId:", freelancerId);
-console.log("jobId:", jobId);
 
     if (![clientId, freelancerId, jobId].every(isValidObjectId)) {
       setError("Invalid ObjectId format.");
@@ -125,8 +123,19 @@ console.log("jobId:", jobId);
         });
 
         if (result.error) setError(result.error.message);
-        else if (result.paymentIntent?.status === "succeeded") setSuccess(true);
-        else setError("Payment did not succeed.");
+        else if (result.paymentIntent?.status === "succeeded") {
+          setSuccess(true);
+
+          // ✅ Prompt for review after payment
+          if (freelancerWallet) {
+            setTimeout(() => {
+              const wantsToReview = window.confirm("✅ Payment successful! Want to leave a review?");
+              if (wantsToReview) {
+                navigate(`/reviews/${freelancerWallet}`);
+              }
+            }, 500);
+          }
+        } else setError("Payment did not succeed.");
       }
 
       if (method === "crypto") {
@@ -166,6 +175,16 @@ console.log("jobId:", jobId);
         );
 
         setSuccess(true);
+
+        // ✅ Prompt for review after crypto payment
+        if (freelancerWallet) {
+          setTimeout(() => {
+            const wantsToReview = window.confirm("✅ Payment successful! Want to leave a review?");
+            if (wantsToReview) {
+              navigate(`/reviews/${freelancerWallet}`);
+            }
+          }, 500);
+        }
       }
     } catch (err) {
       console.error("Payment Error:", err);
