@@ -82,12 +82,13 @@ router.post('/apply/:jobId', protect, async (req, res) => {
 // Route for fetching all jobs
 router.get('/', async (req, res) => {
   try {
-    const jobs = await Job.find().populate('client', 'name email');
+    const jobs = await Job.find({ status: 'open' }).populate('client', 'name email');
     res.status(200).json(jobs);
   } catch (error) {
     res.status(500).json({ error: error.message || 'Error fetching jobs.' });
   }
 });
+
 
 // Route for liking a job
 router.post('/:jobId/like', protect, async (req, res) => {
@@ -129,6 +130,24 @@ router.post('/:jobId/like', protect, async (req, res) => {
     res.status(200).json({ message: "Job liked successfully.", job });
   } catch (error) {
     res.status(500).json({ error: error.message || "Error liking job." });
+  }
+});
+
+// Close a job (update status to 'closed')
+router.put('/:jobId/close', async (req, res) => {
+  try {
+    const job = await Job.findByIdAndUpdate(
+      req.params.jobId,
+      { status: 'closed' },
+      { new: true }
+    );
+    if (!job) {
+      return res.status(404).json({ success: false, message: 'Job not found' });
+    }
+    res.status(200).json({ success: true, job });
+  } catch (error) {
+    console.error('Error closing job:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

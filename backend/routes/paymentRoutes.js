@@ -189,4 +189,32 @@ router.post("/release-crypto", async (req, res) => {
   }
 });
 
+const User = require('../models/User');
+// Reward users with coins and update freelancer's earnings
+router.put('/reward-users', async (req, res) => {
+  const { clientId, freelancerId, rewardCoins, earnings } = req.body;
+
+  if (!clientId || !freelancerId || !rewardCoins || !earnings) {
+    return res.status(400).json({ error: "Missing required fields." });
+  }
+
+  try {
+    // Update client coins
+    await User.findByIdAndUpdate(clientId, {
+      $inc: { coins: rewardCoins },
+    });
+
+    // Update freelancer coins and earnings
+    await User.findByIdAndUpdate(freelancerId, {
+      $inc: { coins: rewardCoins, moneyReceived: earnings },
+    });
+
+    res.status(200).json({ success: true, message: "Users rewarded successfully." });
+  } catch (error) {
+    console.error("Reward error:", error);
+    res.status(500).json({ error: "Failed to reward users." });
+  }
+});
+
+
 module.exports = router;

@@ -47,20 +47,24 @@ const JobCard = ({ job, currentUser, onLike }) => {
     if (!job || !job._id) return alert("Invalid job data.");
     if (!applyMessage.trim()) return alert("Message cannot be empty.");
   
+    // Prevent users from applying to their own job
+    if (currentUser.id === job.client._id) {
+      return alert("❌ You cannot apply to your own job.");
+    }
+  
     // Ensure socket is connected
     if (!socket.connected) {
       console.warn("⚠️ Socket not connected. Connecting now...");
-      socket.connect(); // Manually connect if not already connected
+      socket.connect();
     }
   
-    // Wait for socket to connect before emitting events
     socket.once("connect", () => {
       console.log("✅ Socket connected, proceeding with application...");
   
       const applicationData = {
         applicantId: currentUser.id,
         clientId: job.client._id,
-        jobId: job._id, // Include jobId in the application data
+        jobId: job._id,
         message: applyMessage,
         counterOffer: counterOffer || job.budget,
         status: "pending",
@@ -72,12 +76,12 @@ const JobCard = ({ job, currentUser, onLike }) => {
       console.log("📩 Emitting createConversation event:", {
         senderId: currentUser.id,
         receiverId: job.client._id,
-        jobId: job._id, // Include jobId in the create conversation event
+        jobId: job._id,
       });
       socket.emit("createConversation", {
         senderId: currentUser.id,
         receiverId: job.client._id,
-        jobId: job._id, // Send jobId when creating conversation
+        jobId: job._id,
       });
   
       alert("Application sent successfully! Chat has been created.");
@@ -86,6 +90,7 @@ const JobCard = ({ job, currentUser, onLike }) => {
       setCounterOffer("");
     });
   };
+  
   
   
   const handleShare = () => {

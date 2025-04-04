@@ -20,6 +20,7 @@ const getInTouchRoutes = require('./routes/GetInTouchRoutes');
 const timelineRoutes = require('./routes/timelineRoutes');
 const ongoingProjRoutes = require('./routes/ongoingProjRoutes');
 const paymentRoutes = require("./routes/paymentRoutes");
+const rewardRoutes = require('./routes/upRoutes');
 
 
 dotenv.config();
@@ -50,6 +51,8 @@ app.use('/api/getintouch', getInTouchRoutes);
 app.use('/api/timeline', timelineRoutes);
 app.use('/api/ongoing-projects', ongoingProjRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use('/api/rewards', rewardRoutes); // ← set custom path
+
 
 const activeUsers = new Map();
 

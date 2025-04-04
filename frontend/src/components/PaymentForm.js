@@ -84,23 +84,20 @@ const PaymentForm = () => {
     setLoading(true);
     setError(null);
     setSuccess(false);
-
+  
     if (!amount || isNaN(amount) || amount <= 0) return setError("Invalid amount.");
     if (!["full", "escrow"].includes(type)) return setError("Invalid payment type.");
     if (!clientId || !freelancerId || !jobId) return setError("Missing required IDs.");
-    console.log("clientId:", clientId);
-console.log("freelancerId:", freelancerId);
-console.log("jobId:", jobId);
-
+  
     if (![clientId, freelancerId, jobId].every(isValidObjectId)) {
       setError("Invalid ObjectId format.");
       setLoading(false);
       return;
     }
-
+  
     const token = localStorage.getItem("token");
     if (!token) return setError("Authentication token missing.");
-
+  
     const payload = {
       amount: parseFloat(amount),
       currency,
@@ -108,33 +105,73 @@ console.log("jobId:", jobId);
       freelancerId,
       jobId,
     };
-
+  
+    const rewardCoins = Math.ceil(parseFloat(amount) * 0.065);
+  
+    const rewardUsers = async () => {
+      console.log("🔁 Rewarding users with coins...");
+      console.log("💰 Coins to add:", rewardCoins);
+      console.log("👤 Client ID:", clientId);
+      console.log("👨‍💻 Freelancer ID:", freelancerId);
+  
+      try {
+        console.log("Sending to reward API:", {
+          clientId,
+          freelancerId,
+          rewardCoins,
+          earnings: parseFloat(amount)
+        });
+        
+        const rewardRes = await axios.put(
+          "http://localhost:5001/api/rewards/update-coins", // <--- changed route
+          {
+            clientId,
+            freelancerId,
+            rewardCoins,
+            earnings: parseFloat(amount),
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        
+        console.log("✅ Reward success:", rewardRes.data);
+      } catch (err) {
+        console.error("❌ Reward error:", err?.response?.data || err.message);
+      }
+    };
+  
     try {
       if (method === "stripe") {
         if (!stripe || !elements) return setError("Stripe.js not loaded.");
-
+  
         const res = await axios.post(`${API_BASE_URL}/create-payment`, payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
+  
         const clientSecret = res.data.clientSecret;
         if (!clientSecret) return setError("Missing Stripe clientSecret.");
-
+  
         const result = await stripe.confirmCardPayment(clientSecret, {
           payment_method: { card: elements.getElement(CardElement) },
         });
-
-        if (result.error) setError(result.error.message);
-        else if (result.paymentIntent?.status === "succeeded") setSuccess(true);
-        else setError("Payment did not succeed.");
+  
+        if (result.error) {
+          setError(result.error.message);
+        } else if (result.paymentIntent?.status === "succeeded") {
+          await rewardUsers();
+          setSuccess(true);
+        } else {
+          setError("Payment did not succeed.");
+        }
       }
-
+  
       if (method === "crypto") {
         if (!clientWallet) {
           await connectWallet();
           if (!clientWallet) return setError("Wallet not connected.");
         }
-
+  
         const res = await axios.post(
           `${API_BASE_URL}/crypto-request`,
           {
@@ -147,33 +184,35 @@ console.log("jobId:", jobId);
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-
+  
         const cryptoPayment = res.data?.payments?.[0];
         if (!cryptoPayment) return setError("No crypto payment data.");
-
+  
         const provider = new ethers.BrowserProvider(window.ethereum);
         const signer = await provider.getSigner();
-
+  
         const tx = await signer.sendTransaction({
           to: cryptoPayment.toWallet,
           value: ethers.parseEther(cryptoPayment.amountCrypto),
         });
-
+  
         await axios.post(
           `${API_BASE_URL}/verify-crypto`,
           { intentId: cryptoPayment._id, txHash: tx.hash },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-
+  
+        await rewardUsers();
         setSuccess(true);
       }
     } catch (err) {
-      console.error("Payment Error:", err);
+      console.error("❌ Payment Error:", err);
       setError(err?.response?.data?.error || "Payment failed.");
     }
+  
     setLoading(false);
   };
-
+  
   return (
     <form
       onSubmit={handlePayment}

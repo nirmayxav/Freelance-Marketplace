@@ -46,48 +46,42 @@ const CreateTimeline = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate that the conversation exists
+  
     if (!selectedConversation) {
       alert('Conversation not found!');
       return;
     }
-
-    // Validate milestones (add your own validation as needed)
+  
     for (let milestone of formData.milestones) {
       if (!milestone.description || !milestone.amount || !milestone.trigger) {
         alert('Please fill in all milestone fields.');
         return;
       }
     }
-
-    // For full or hourly, enforce only one milestone.
+  
     if ((formData.paymentMode === 'full' || formData.paymentMode === 'hourly') && formData.milestones.length > 1) {
       alert('Only one milestone is allowed for full or hourly payment modes.');
       return;
     }
-
-    // Freeze the payment mode into a variable only when submitting
+  
     const finalPaymentMode = formData.paymentMode;
-
-    // Compute total amount from milestone amounts if not provided.
+  
     const computedTotal = formData.milestones.reduce(
       (sum, milestone) => sum + Number(milestone.amount),
       0
     );
-
-    // Prepare requestData with job id added, using the finalPaymentMode
+  
     const requestData = {
       ...formData,
       conversationId: selectedConversation._id,
-      applicant: selectedConversation.participants[0]._id, // Ensure you're sending just the id
-      client: JSON.parse(localStorage.getItem("user")).id,   // Ensure you're sending just the id
-      paymentMode: finalPaymentMode,                         // Using the variable stored on submission
-      paymentType: formData.paymentType,                     // 'stripe', 'blockchain', or 'other'
+      applicant: selectedConversation.participants[0]._id,
+      client: JSON.parse(localStorage.getItem("user")).id,
+      paymentMode: finalPaymentMode,
+      paymentType: formData.paymentType,
       totalAmount: formData.totalAmount || computedTotal,
-      jobId: selectedConversation.jobId._id,                 // Store job id from selected conversation
+      jobId: selectedConversation.jobId._id,
     };
-
+  
     try {
       const res = await fetch('http://localhost:5001/api/timeline', {
         method: 'POST',
@@ -97,11 +91,27 @@ const CreateTimeline = () => {
         },
         body: JSON.stringify(requestData),
       });
+  
+      const result = await res.json();
       const jobId = selectedConversation.jobId._id;
       const currentConversationId = selectedConversation._id;
-
-      const result = await res.json();
+  
       if (result.success) {
+        // ✅ Step 1: Close the job
+        try {
+          await fetch(`http://localhost:5001/api/jobs/${jobId}/close`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+          console.log("Job status set to closed");
+        } catch (err) {
+          console.error("Error closing job:", err);
+        }
+  
+        // ✅ Step 2: Delete extra conversations
         try {
           const deleteRes = await fetch(
             `http://localhost:5001/api/conversations?jobId=${jobId}&exclude=${currentConversationId}`,
@@ -113,23 +123,23 @@ const CreateTimeline = () => {
               },
             }
           );
-
+  
           const contentType = deleteRes.headers.get('content-type');
           let deleteResult;
           if (contentType && contentType.includes('application/json')) {
             deleteResult = await deleteRes.json();
           } else {
-            // Fallback to text if the response is not JSON
             deleteResult = await deleteRes.text();
             console.error('Delete endpoint did not return JSON:', deleteResult);
           }
+  
           if (!deleteResult.success) {
             console.error("Error deleting extra conversations:", deleteResult.message);
           }
         } catch (deleteError) {
           console.error("Error deleting extra conversations:", deleteError);
         }
-        console.log("Deleted the extra conversations");
+  
         navigate('/chat');
       } else {
         console.error("Error creating timeline:", result.message);
@@ -138,7 +148,7 @@ const CreateTimeline = () => {
       console.error('Error creating timeline:', error);
     }
   };
-
+  
   return (
     <div className="timeline-container">
       <div className="header">
@@ -249,17 +259,20 @@ const CreateTimeline = () => {
           <div className="form-step">
             <h2>Define Timeline & Escrow</h2>
             <div className="escrow-toggle">
-              <label>
-                <input
-                  type="checkbox"
-                  name="escrowEnabled"
-                  checked={formData.escrowEnabled}
-                  onChange={(e) => setFormData({ ...formData, escrowEnabled: e.target.checked })}
-                  disabled={formData.paymentMode === 'milestone'} 
-                />
-                Enable Escrow Payments
-              </label>
-            </div>
+  <label>
+    <input
+      type="checkbox"
+      name="escrowEnabled"
+      checked={formData.escrowEnabled}
+      onChange={(e) =>
+        setFormData({ ...formData, escrowEnabled: e.target.checked })
+      }
+      disabled={formData.paymentMode === "milestone"}
+    />
+    <span>Enable Escrow Payments</span>
+  </label>
+</div>
+
 
             {/* Milestone Section: Always visible */}
             <div className="milestones-section">

@@ -163,5 +163,29 @@ router.get('/reviews', protect, async (req, res) => {
   }
 });
 
+router.delete("/delete", protect, async (req, res) => {
+  try {
+    const { password } = req.body;
 
+    if (!password) {
+      return res.status(400).json({ success: false, message: "Password is required." });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: "Incorrect password." });
+    }
+
+    await User.findByIdAndDelete(req.user._id);
+    return res.status(200).json({ success: true, message: "Account deleted successfully." });
+  } catch (err) {
+    console.error("❌ Error deleting account:", err);
+    return res.status(500).json({ success: false, message: "Server error during deletion." });
+  }
+});
 module.exports = router;

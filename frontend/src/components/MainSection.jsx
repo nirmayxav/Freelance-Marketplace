@@ -15,19 +15,17 @@ const navigate = useNavigate();
 
   return (
     <div className="how-it-works">
-     <div className="main-hero-section">
+    <div className="main-hero-section">
   <h1>Meet The Freelance Market</h1>
   <p className="subtitle">Finding Jobs Made Easy</p>
   <h2>Scale your professional workforce with freelancers</h2>
-  <div className="search-container">
-    <input 
-      type="text" 
-      placeholder="Search for any service..." 
-      className="search-input"
-    />
-  </div>
-  
+
+  <h3 style={{ marginTop: "1.5rem", fontWeight: "400", color: "#ccc" }}>
+    Trusted by hundreds of companies to find top freelancers. <br />
+    Over 1,000+ jobs posted across categories like Web Development, Design, AI, and more.
+  </h3>
 </div>
+
      
 
     <div className="how-it-works">

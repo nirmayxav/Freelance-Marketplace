@@ -13,6 +13,10 @@ const ProfilePage = () => {
   const [successMsg, setSuccessMsg] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+const [deletePassword, setDeletePassword] = useState("");
+
   // Fetch profile data from the server on mount
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -127,7 +131,34 @@ const ProfilePage = () => {
         setError("Failed to update profile");
       });
   };
-
+  const handleDeleteAccount = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+  
+    try {
+      const res = await fetch("http://localhost:5001/api/user/delete", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: deletePassword }),
+      });
+  
+      const result = await res.json();
+      if (res.ok && result.success) {
+        alert("Account deleted successfully.");
+        localStorage.clear();
+        navigate("/");
+      } else {
+        alert(result.message || "Failed to delete account.");
+      }
+    } catch (err) {
+      console.error("Error deleting account:", err);
+      alert("Server error while deleting account.");
+    }
+  };
+  
   if (loading) return <p>Loading...</p>;
   if (error) return <p style={{ color: "red" }}>{error}</p>;
   const handleLogout = () => {
@@ -171,6 +202,10 @@ const ProfilePage = () => {
           <span>Rating: {profile.rating || "N/A"} ⭐</span>
           <button onClick={() => setIsEditing(true)}>Edit</button>
           {successMsg && <p className="success-msg">{successMsg}</p>}
+          <button className="delete-btn" onClick={() => setShowDeleteConfirm(true)}>
+  Delete Account
+</button>
+
         </div>
 
         {/* About Me Section */}
@@ -316,22 +351,69 @@ const ProfilePage = () => {
                 )
               }
               placeholder="Enter skills separated by commas"
-            />
-            {/* Modal Action Buttons */}
-            <div className="modal-buttons">
-              <button onClick={saveProfileChanges} className="save-btn">
-                Save Changes
-              </button>
-              <button
-                onClick={() => setIsEditing(false)}
-                className="cancel-btn"
-              >
-                Cancel
-              </button>
-            </div>
+                      />
+                      {/* Modal Action Buttons */}
+                      <div className="modal-buttons">
+                      <div className="button-row">
+            <button onClick={saveProfileChanges} className="save-btn">
+              Save Changes
+            </button>
+            <button onClick={() => setIsEditing(false)} className="cancel-btn1">
+              Cancel
+            </button>
           </div>
-        </div>
-      )}
+
+                        
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* Delete Account Modals */}
+          {(showDeleteConfirm || showPasswordPrompt) && (
+            <div className="delete-account-container">
+              {showDeleteConfirm && (
+                <div className="delete-confirm-modal">
+                  <div className="modal-content">
+                    <h2>Are you sure?</h2>
+                    <p>
+                      Deleting your account is <strong>permanent</strong> and cannot be undone.
+                      All your job postings, applications, reviews, and data will be removed.
+                    </p>
+                    <div className="button-row">
+                      <button className="cancel-btn1" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+                      <button className="danger-btn" onClick={() => {
+                        setShowDeleteConfirm(false);
+                        setShowPasswordPrompt(true);
+                      }}>
+                        Yes, I'm sure
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showPasswordPrompt && (
+                <div className="delete-password-modal">
+                  <div className="modal-content">
+                    <h2>Confirm Account Deletion</h2>
+                    <p>Please enter your password to permanently delete your account.</p>
+                    <input
+                      type="password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      placeholder="Enter your password"
+                    />
+                    <div className="button-row">
+                      <button className="cancel-btn1" onClick={() => setShowPasswordPrompt(false)}>Cancel</button>
+                      <button className="danger-btn" onClick={handleDeleteAccount}>Delete My Account</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+
     </div>
   );
 };

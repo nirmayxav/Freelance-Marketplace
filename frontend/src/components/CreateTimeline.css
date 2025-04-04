@@ -1,12 +1,10 @@
-
 :root {
-  --primary: #00fff5;       /* Neon turquoise */
-  --secondary: #ff00f7;     /* Neon magenta */
-  --accent: #66fcf1;        /* Lighter turquoise for accents */
-  --dark: #0b0c10;          /* Deep space dark */
-  --light: #c5c6c7;         /* Light gray */
+  --primary: #00d1ff;
+  --secondary: #1a1a2e;
+  --bg: #0a0a1a;
   --glass: rgba(255, 255, 255, 0.05);
 }
+
 
 /* Container with gradient background and neon border */
 .timeline-container {
@@ -97,8 +95,8 @@
 }
 
 .milestone-card {
-  background: var(--primary);
-  color: var(--dark);
+  background: var(--secondary);
+  color: var(--primary);
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 10px;
@@ -110,7 +108,7 @@
   border: none;
   padding: 10px 15px;
   border-radius: 4px;
-  color: var(--dark);
+  color: var(--primary);
   cursor: pointer;
   font-weight: bold;
   transition: background 0.3s, transform 0.3s;
@@ -160,4 +158,66 @@ input::placeholder,
 textarea::placeholder {
   color: var(--light);
   opacity: 0.7;
+}
+
+.escrow-toggle {
+  margin: 1.5rem 0;
+  padding: 1rem 1.5rem;
+  background: var(--glass);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+}
+
+.escrow-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.escrow-toggle input[type="checkbox"] {
+  appearance: none;
+  width: 50px;
+  height: 26px;
+  background: #555;
+  border-radius: 15px;
+  position: relative;
+  transition: background 0.3s ease;
+  outline: none;
+  cursor: pointer;
+}
+
+.escrow-toggle input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  left: 2px;
+  top: 2px;
+  background: var(--primary);
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+.escrow-toggle input[type="checkbox"]:checked {
+  background: #00d1ff88;
+}
+
+.escrow-toggle input[type="checkbox"]:checked::before {
+  transform: translateX(24px);
+}
+
+.escrow-toggle input[type="checkbox"]:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.escrow-toggle label span {
+  font-weight: 500;
 }

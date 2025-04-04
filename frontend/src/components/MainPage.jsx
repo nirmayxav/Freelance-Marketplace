@@ -34,27 +34,25 @@ const MainPage = () => {
   // Function to fetch jobs
   const fetchJobs = async () => {
     try {
-      const res = await fetch("/api/jobs"); // Update API route if needed
+      const res = await fetch("/api/jobs"); // Backend should return all jobs
       const data = await res.json();
-
-      // Sort jobs by likes in descending order
-      const sortedJobs = data.sort((a, b) => b.likes - a.likes);
+  
+      // Filter out only open jobs
+      const openJobs = data.filter((job) => job.status === "open");
+  
+      // Sort by likes
+      const sortedJobs = openJobs.sort((a, b) => b.likes - a.likes);
+  
       setJobs(sortedJobs);
-
-      // Set featured job (most liked job)
       setFeaturedJob(sortedJobs[0]);
-
-      // Set trending jobs (next 3 most liked jobs)
       setTrendingJobs(sortedJobs.slice(1, 4));
-
-      // Set general jobs (remaining jobs)
       setGeneralJobs(sortedJobs.slice(4));
-      setFilteredGeneralJobs(sortedJobs.slice(4)); // Initialize filtered general jobs
+      setFilteredGeneralJobs(sortedJobs.slice(4));
     } catch (err) {
       console.error("Error fetching jobs:", err);
     }
   };
-
+  
   // Function to handle likes
   const handleLike = async (jobId) => {
     try {
@@ -153,24 +151,16 @@ const MainPage = () => {
 
             {/* Featured Job Section */}
             {featuredJob && (
-              <div className="featured-job">
-                <h2>🌟 Featured Job</h2>
-                <div className="featured-job-card">
-                  <h3>{featuredJob.title}</h3>
-                  <p>{featuredJob.description}</p>
-                  <div className="skills-tags">
-                    {featuredJob.skillsRequired.map((skill, index) => (
-                      <span key={index}>{skill}</span>
-                    ))}
-                  </div>
-                  <div className="job-meta">
-                    <span>💰 ${featuredJob.budget}</span>
-                    <span>⏳ {featuredJob.timeline}</span>
-                    <span>❤️ {featuredJob.likes} Likes</span>
-                  </div>
-                </div>
-              </div>
-            )}
+  <div className="featured-job">
+    <h2>🌟 Featured Job</h2>
+    <JobCard
+      job={featuredJob}
+      currentUser={currentUser}
+      onLike={handleLike}
+    />
+  </div>
+)}
+
           </div>
 
           {/* Filter Section */}
