@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const protect = require('../middleware/auth'); // Your auth middleware
+const protect = require('../middlewares/authMiddleware');
 
 // PUT /api/rewards/update-coins
 router.put('/update-coins', protect, async (req, res) => {
