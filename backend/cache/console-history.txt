@@ -1,0 +1,3 @@
+await contract.addReview("0xFreelancerAddr", "Great work", 5)
+const contract = await ethers.getContractAt("ReviewContract", "0xYourAddress");
+const [owner] = await ethers.getSigners();

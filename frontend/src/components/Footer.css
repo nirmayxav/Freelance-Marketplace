@@ -1,0 +1,30 @@
+.footer {
+    text-align: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, 0.8);
+    color: #aaa;
+    font-size: 0.9rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(6px);
+    margin-top: auto;
+  }
+  
+  .footer-links {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  
+  .footer-links span {
+    color: #00d1ff;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+  
+  .footer-links span:hover {
+    color: #fff;
+    text-decoration: underline;
+  }
+  

@@ -1,0 +1,177 @@
+/* OngoingProject.css */
+:root {
+    --primary: #00d1ff;
+    --secondary: #1a1a2e;
+    --bg: #0a0a1a;
+    --glass: rgba(255, 255, 255, 0.05);
+  }
+  
+  .ongoing-project {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: var(--bg);
+    color: white;
+    border-radius: 20px;
+  }
+  
+  h1, h2 {
+    color: var(--primary);
+  }
+  
+  .project-timeline {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: var(--glass);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .timeline-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  
+  .timeline-step {
+    padding: 1.5rem;
+    border-left: 3px solid rgba(255, 255, 255, 0.1);
+    position: relative;
+  }
+  
+  .timeline-step.completed {
+    border-color: var(--primary);
+  }
+  
+  .timeline-step.active {
+    border-color: #ffd700;
+  }
+  
+  .timeline-step::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 0;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .timeline-step.completed::before {
+    background: var(--primary);
+  }
+  
+  .timeline-step.active::before {
+    background: #ffd700;
+  }
+  
+  .important-features {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: var(--glass);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .important-features ul {
+    list-style: none;
+    padding: 0;
+  }
+  
+  .important-features li {
+    padding: 0.8rem;
+    margin: 0.5rem 0;
+    background: var(--secondary);
+    border-radius: 8px;
+  }
+  
+  .code-submission {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: var(--glass);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .code-submission textarea {
+    width: 100%;
+    padding: 1rem;
+    background: var(--secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 10px;
+    font-family: monospace;
+    margin-bottom: 1rem;
+  }
+  
+  .code-submission button {
+    background: var(--primary);
+    color: var(--secondary);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .code-submission button:hover {
+    transform: translateY(-2px);
+  }
+  
+  .submissions-history {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: var(--glass);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .submission-item {
+    background: var(--secondary);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 10px;
+  }
+  
+  .submission-item pre {
+    background: var(--bg);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+  }
+  
+  .acceptance-section {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: var(--glass);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+  }
+  
+  .accept-button {
+    background: var(--primary);
+    color: var(--secondary);
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .accept-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 209, 255, 0.3);
+  }
+  
+  .acceptance-confirmation {
+    margin: 2rem 0;
+    padding: 2rem;
+    background: rgba(0, 255, 0, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    text-align: center;
+  }

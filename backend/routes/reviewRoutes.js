@@ -1,0 +1,45 @@
+const express = require("express");
+const router = express.Router();
+const { reviewContract } = require("../config/ethers");
+
+// POST /api/reviews/add
+router.post("/add", async (req, res) => {
+  const { freelancerAddress, comment, rating } = req.body;
+
+  if (!freelancerAddress || !comment || typeof rating !== "number" || rating < 1 || rating > 5) {
+    return res.status(400).json({ success: false, message: "Invalid review data." });
+  }
+
+  try {
+    const tx = await reviewContract.addReview(freelancerAddress, comment, rating);
+    await tx.wait();
+
+    res.status(200).json({
+      success: true,
+      message: "Review successfully written to blockchain!",
+      txHash: tx.hash,
+    });
+  } catch (err) {
+    console.error("❌ Error writing review:", err.reason || err.message || err);
+    res.status(500).json({
+      success: false,
+      message: "Error writing review to blockchain.",
+      error: err.message || "Unknown error",
+    });
+  }
+});
+
+// @route   GET /api/reviews/:freelancerAddress
+// @desc    Get all reviews for a freelancer
+router.get("/:freelancerAddress", async (req, res) => {
+  const { freelancerAddress } = req.params;
+
+  try {
+    const reviews = await reviewContract.getReviews(freelancerAddress);
+    res.status(200).json({ success: true, reviews });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+module.exports = router;
