@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import './JobCard.css'; // optional: if you want styling
-
+import ApplyPopup from "./ApplyPopup"; // Ensure the ApplyPopup component is imported correctly
 // Ensure the socket instance is imported from a common module
 import { socket } from "./socket"; // e.g., from
-
+import SharePopup from "./SharePopup";
 const JobCard = ({ job, currentUser, onLike }) => {
   const [likes, setLikes] = useState(job?.likes || 0);
   const [showPopup, setShowPopup] = useState(false);
@@ -115,14 +115,24 @@ const JobCard = ({ job, currentUser, onLike }) => {
 
   return (
     <div className="freelance-card-glass">
-    {job?.fileAttachment && (
-      <img src={job.fileAttachment} alt={job.title} className="freelance-card-img" />
-    )}
+    
   
     <div className="freelance-card-body">
       <h3 className="freelance-card-title">{job?.title}</h3>
-      <p className="freelance-card-desc">{job?.description}</p>
-  
+      <p className="freelance-card-desc">
+  {(() => {
+    const words = job?.description?.split(" ") || [];
+    const shortText = words.slice(0, 50).join(" ");
+    const hasMore = words.length > 50;
+
+    return (
+      <>
+        {shortText}
+        {hasMore && <span style={{ color: "var(--primary)" }}>...</span>}
+      </>
+    );
+  })()}
+</p>  
       <div className="freelance-skill-chips">
         {job?.skillsRequired?.map((skill, index) => (
           <span className="freelance-skill-chip" key={index}>{skill}</span>
@@ -150,47 +160,28 @@ const JobCard = ({ job, currentUser, onLike }) => {
     </div>
   
 
-      {showPopup && (
-        <div className="apply-popup">
-          <h3>Apply for {job?.title}</h3>
-          <textarea
-            placeholder="Write your message..."
-            value={applyMessage}
-            onChange={(e) => setApplyMessage(e.target.value)}
-          />
-          <input
-            type="number"
-            placeholder="Counter Offer (Optional)"
-            value={counterOffer}
-            onChange={(e) => setCounterOffer(e.target.value)}
-          />
-          <button onClick={handleApplySubmit}>Submit</button>
-          <button
-            style={{ background: "#ff00ff" }}
-            onClick={() => setShowPopup(false)}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+    {showPopup && (
+  <ApplyPopup
+    job={job}
+    applyMessage={applyMessage}
+    setApplyMessage={setApplyMessage}
+    counterOffer={counterOffer}
+    setCounterOffer={setCounterOffer}
+    onSubmit={handleApplySubmit}
+    onClose={() => setShowPopup(false)}
+  />
+)}
 
-      {showSharePopup && (
-        <div
-          className="share-popup"
-          style={{ background: "var(--glass)", padding: "1rem", borderRadius: "8px" }}
-        >
-          <h3>Share this Job</h3>
-          <button onClick={shareToWhatsApp}>Share to WhatsApp</button>
-          <button onClick={shareToX}>Share to X</button>
-          <button onClick={copyLink}>Copy Link</button>
-          <button
-            style={{ background: "#ff00ff" }}
-            onClick={() => setShowSharePopup(false)}
-          >
-            Close
-          </button>
-        </div>
-      )}
+
+{showSharePopup && (
+  <SharePopup
+    onClose={() => setShowSharePopup(false)}
+    shareToWhatsApp={shareToWhatsApp}
+    shareToX={shareToX}
+    copyLink={copyLink}
+  />
+)}
+
     </div>
   );
 };

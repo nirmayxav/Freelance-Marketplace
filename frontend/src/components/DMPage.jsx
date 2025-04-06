@@ -211,7 +211,6 @@ const DMPage = () => {
           {/* Correct way to render jobId title */}
           <p>Job Title: {conv.jobId?.title || 'No job associated'}</p> {/* Render job title */}
           {/* Optionally, you can render job description */}
-          <p>Job Description: {conv.jobId?.description || 'No description available'}</p> {/* Render job description */}
         </div>
       </div>
     );
@@ -249,8 +248,14 @@ const DMPage = () => {
                 return (
                   <div key={msg._id} className={`message ${messageClass}`}>
                     <div className="message-content">
-                      <p>{msg.message}</p>
-                      {msg.counterOffer && (
+                    <p className="sender-label">
+      {typeof msg.sender === 'object'
+        ? msg.sender.username || msg.sender._id
+        : msg.sender}   
+
+    </p>     
+    <p>{msg.message}</p>          
+           {msg.counterOffer && (
                         <p className="counter-offer">
                           Counter Offer: ${msg.counterOffer}
                         </p>

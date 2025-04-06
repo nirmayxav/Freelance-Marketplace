@@ -213,14 +213,7 @@ body {
   transform: translateY(-2px);
 }
 /* Job Grid */
-.job-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2rem;
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-}
+
 
 /* Job Card */
 .job-card {
@@ -447,7 +440,16 @@ body {
   }
 }.job-grid {
   display: flex;
-  flex-direction: column; /* Ensures jobs stack one after another */
-  gap: 20px; /* Adds spacing between jobs */
-  width: 100%; /* Makes sure it spans the full container */
+  flex-direction: column;
+  gap: 20px;
+  padding: 20px;
+}
+
+.job-grid .freelance-card-glass {
+  height: auto;
+  width: 1050px;
+  background: var(--glass); /* optional */
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 0 10px rgba(0, 209, 255, 0.2);
 }

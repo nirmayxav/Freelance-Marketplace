@@ -85,8 +85,8 @@ router.post("/login", async (req, res) => {
 const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
-        user: "email",
-        pass: "use gmail app password", 
+        user: "nirmay0604@gmail.com",
+        pass: "kueu raga khvo bcdx", 
     },
 });
 
@@ -106,11 +106,11 @@ router.post("/forgot-password", async (req, res) => {
         console.log("🔑 New Password Generated:", newPassword);
 
         // ✅ Hash the new password before saving
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
+        user.password = newPassword;
         await user.save();
         console.log("✅ Password Updated in DB for:", email);
-
+        const match = await bcrypt.compare(newPassword, user.password);
+        console.log("💡 Immediate post-save bcrypt compare:", match); 
         // Send email with new password
         await transporter.sendMail({
             from: process.env.EMAIL_USER,

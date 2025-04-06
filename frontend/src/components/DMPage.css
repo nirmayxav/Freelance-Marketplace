@@ -50,7 +50,7 @@
 
 .dm-container {
   display: flex;
-  height: 80vh;
+  height: 84vh;
   font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
   background-color: var(--dark);
   color: var(--light);
@@ -334,4 +334,10 @@
 
 .chat-area .message-input .accept-button:hover {
   background-color: #218838;
+}
+.sender-label {
+  font-weight: bold;
+  margin-bottom: 4px;
+  font-size: 0.85rem;
+  color: var(--primary); /* or any distinguishable color */
 }

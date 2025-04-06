@@ -267,17 +267,19 @@ const CreateTimeline = () => {
           <div className="form-step">
             <h2>Define Timeline & Escrow</h2>
             <div className="escrow-toggle">
-              <label>
-                <input
-                  type="checkbox"
-                  name="escrowEnabled"
-                  checked={formData.escrowEnabled}
-                  onChange={(e) => setFormData({ ...formData, escrowEnabled: e.target.checked })}
-                  disabled={formData.paymentMode === 'milestone'} 
-                />
-                Enable Escrow Payments
-              </label>
-            </div>
+  <label className="switch">
+    <input
+      type="checkbox"
+      name="escrowEnabled"
+      checked={formData.escrowEnabled}
+      onChange={(e) => setFormData({ ...formData, escrowEnabled: e.target.checked })}
+      disabled={formData.paymentMode === 'milestone'}
+    />
+    <span className="slider" />
+  </label>
+  <span className="toggle-label">Enable Escrow Payments</span>
+</div>
+
 
             {/* Milestone Section: Always visible */}
             <div className="milestones-section">
