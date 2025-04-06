@@ -107,7 +107,7 @@ const Header = () => {
 
   return (
     <div className="header">
-      <img src="/images/image1.png" alt="Logo" className="logo" />
+      <img src="/images/image50.png" alt="Logo" className="logo" />
       <div className="auth-buttons">
         <button className="custom-button" onClick={() => setShowLogin(true)}>
           <span className='custom-span'>Login</span>

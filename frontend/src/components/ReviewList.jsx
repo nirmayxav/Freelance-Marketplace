@@ -6,23 +6,28 @@ const ReviewList = ({ freelancerAddress }) => {
 
   useEffect(() => {
     if (!freelancerAddress) return;
-
+  
     const fetchReviews = async () => {
+      console.log("🔄 Fetching reviews for:", freelancerAddress);
       try {
         const res = await fetch(`/api/reviews/${freelancerAddress}`);
         const data = await res.json();
-        if (data.success) {
+        if (res.ok && data.success) {
           setReviews(data.reviews);
+          console.log("✅ Reviews fetched:", data.reviews);
+        } else {
+          console.error("🧨 Failed response:", data);
         }
       } catch (err) {
-        console.error("Error fetching reviews:", err);
+        console.error("❌ Error fetching reviews:", err.message);
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchReviews();
   }, [freelancerAddress]);
+  
 
   if (loading) return <p>Loading reviews...</p>;
   if (!reviews.length) return <p>No reviews yet.</p>;

@@ -182,19 +182,7 @@ router.delete('/delete', protect, async (req, res) => {
   }
 });
 
-// GET /api/users/:id/wallet
-router.get("/:id/wallet", async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select("walletAddress");
 
-    if (!user) return res.status(404).json({ error: "User not found." });
-    if (!user.walletAddress) return res.status(400).json({ error: "Freelancer has no wallet address." });
 
-    res.json({ walletAddress: user.walletAddress });
-  } catch (err) {
-    console.error("Error fetching wallet address:", err);
-    res.status(500).json({ error: "Server error fetching wallet address." });
-  }
-});
 
 module.exports = router;

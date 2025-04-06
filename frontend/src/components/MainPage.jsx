@@ -113,7 +113,7 @@ const MainPage = () => {
     <div className="profile-page">
       {/* Header Section with Logout */}
       <div className="header">
-        <img src="images/image10.png" alt="User" />
+        <img src="images/image50.png" alt="User" />
         <div className="header-right">
           <span onClick={() => navigate("/profile")}>Profile</span>
           <span onClick={() => navigate("/chat")}>Chat</span>

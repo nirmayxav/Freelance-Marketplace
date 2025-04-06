@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./ProfilePage.css";
 import { useNavigate } from "react-router-dom";
+import ReviewList from "../components/ReviewList"; // adjust path as needed
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -15,8 +16,9 @@ const ProfilePage = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [deletePassword, setDeletePassword] = useState("");
-  
-  // Fetch profile data from the server on mount
+  const [walletAddress, setWalletAddress] = useState("");
+
+ 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -24,29 +26,53 @@ const ProfilePage = () => {
       navigate("/login");
       return;
     }
-
-    fetch("http://localhost:5001/api/user/profile", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((res) =>
-        res.ok ? res.json() : Promise.reject("Failed to fetch profile")
-      )
-      .then((data) => {
+  
+    const fetchProfile = async () => {
+      try {
+        const res = await fetch("http://localhost:5001/api/user/profile", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+  
+        if (!res.ok) throw new Error("Failed to fetch profile");
+        const data = await res.json();
         setProfile(data);
         setTempProfile(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching profile:", err);
+        console.log("✅ Profile fetched:", data);
+  
+        // 🔹 Fetch walletAddress using new API
+        const walletRes = await fetch("http://localhost:5001/api/wallets/me", {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        console.log("🌐 Response status from /wallets/me:", walletRes.status);
+        const walletData = await walletRes.json();
+        console.log("📦 Response data from /wallets/me:", walletData);
+        
+        if (walletRes.ok) {
+          console.log("✅ Wallet address retrieved:", walletData.walletAddress);
+          setWalletAddress(walletData.walletAddress);
+        } else {
+          console.error("❌ Error from /wallets/me:", walletData.error);
+        }
+        
+  
+      } catch (err) {
+        console.error("❌ Error fetching profile or wallet:", err);
         setError("Failed to load profile");
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+  
+    fetchProfile();
   }, [navigate]);
-
+  
   // Generic change handler for form inputs
   const handleChange = (field, value) => {
     setTempProfile({ ...tempProfile, [field]: value });
@@ -171,7 +197,7 @@ const ProfilePage = () => {
     <div className="profile-page">
       {/* Header */}
       <div className="header">
-        <img src="images/image10.png" alt="User" />
+        <img src="images/image50.png" alt="User" />
         <div className="header-right">
           <span onClick={() => navigate("/homes")}>Home</span>
           <span onClick={() => navigate("/post")}>Post a Job</span>
@@ -261,21 +287,16 @@ const ProfilePage = () => {
 
       {/* Reviews Section */}
       <div className="reviews-section">
-        <h2>Reviews Received</h2>
-        <div className="reviews-card">
-          {profile.reviews && profile.reviews.length > 0 ? (
-            profile.reviews.map((review, index) => (
-              <div key={index} className="review-item">
-                <h3>{review.reviewer || "Anonymous"}</h3>
-                <p>"{review.comment || "No comment"}"</p>
-                <span>{"⭐".repeat(review.rating || 0)}</span>
-              </div>
-            ))
-          ) : (
-            <p>No reviews available.</p>
-          )}
-        </div>
-      </div>
+  <h2>Reviews Received</h2>
+  <div className="reviews-card">
+    {walletAddress ? (
+      <ReviewList freelancerAddress={walletAddress} />
+    ) : (
+      <p>No wallet address found. Cannot fetch reviews.</p>
+    )}
+  </div>
+</div>
+
 
       {/* Edit Modal */}
       {isEditing && (

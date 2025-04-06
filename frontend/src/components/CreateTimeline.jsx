@@ -160,7 +160,7 @@ const CreateTimeline = () => {
   return (
     <div className="timeline-container">
       <div className="header">
-        <img src="images/image10.png" alt="User" className="header-img" />
+        <img src="images/image50.png" alt="User" className="header-img" />
       </div>
       <div className="timeline-stepper">
         <div className={`step ${currentStep === 1 ? 'active' : ''}`}>1. Payment Mode</div>

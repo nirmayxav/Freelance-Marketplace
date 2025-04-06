@@ -124,7 +124,7 @@ const OngoingProject = () => {
   return (
     <div className="ongoing-project">
        <div className="header">
-        <img src="images/image10.png" alt="User" />
+        <img src="images/image50.png" alt="User" />
         <div className="header-right">
         <span onClick={() => navigate("/homes")}>Home</span>
 

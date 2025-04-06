@@ -33,13 +33,25 @@ router.post("/add", async (req, res) => {
 // @desc    Get all reviews for a freelancer
 router.get("/:freelancerAddress", async (req, res) => {
   const { freelancerAddress } = req.params;
+  console.log("🔍 Fetching reviews for:", freelancerAddress);
 
   try {
-    const reviews = await reviewContract.getReviews(freelancerAddress);
+    const rawReviews = await reviewContract.getReviews(freelancerAddress);
+    console.log("✅ Raw reviews from contract:", rawReviews);
+
+    // 🔄 Convert BigInt fields to numbers or strings
+    const reviews = rawReviews.map((review) => ({
+      comment: review.comment,
+      rating: Number(review.rating), // Convert BigInt to Number
+      reviewer: review.reviewer,
+    }));
+
     res.status(200).json({ success: true, reviews });
   } catch (err) {
+    console.error("❌ Error fetching reviews:", err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
 
 module.exports = router;

@@ -177,7 +177,7 @@ const DMPage = () => {
   return (
     <div className="dm-container">
       <div className="header">
-        <img src='images/image10.png' alt="User" className="" />
+        <img src='images/image50.png' alt="User" className="" />
         <div className="header-right">
           <span onClick={navigateToHome}>Home</span>
           <span onClick={navigateToAbout}>Profile</span>

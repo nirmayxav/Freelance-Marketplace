@@ -16,13 +16,13 @@ const navigate = useNavigate();
   return (
     <div className="how-it-works">
      <div className="main-hero-section">
-  <h1>Meet The Freelance Market</h1>
-  <p className="subtitle">Finding Jobs Made Easy</p>
-  <h2>Scale your professional workforce with freelancers</h2>
-  <h3 className="platform-message">
-    🔒 Trusted by leading companies to find top-tier freelancers. <br />
-    💼 Over 1,000+ jobs posted and growing every day!
-  </h3>
+     <h1>Welcome to GIGO</h1>
+<p className="subtitle">Freelance at the Speed of Big O</p>
+<h2>Connect. Collaborate. Conquer Projects with Top Talent.</h2>
+<h3 className="platform-message">
+  🚀 Powering seamless hiring between clients and freelancers. <br />
+  📈 Thousands of tasks completed — GIGO is where work gets done.
+</h3>
 
   
 </div>
@@ -34,18 +34,19 @@ const navigate = useNavigate();
         <div className="step">
           <img src="/images/image2.png" alt="Step 1" className="step-logo" />
           <p className="description">
-         <b>Find Talent </b>– Use advanced search filters to hire the best freelancers based on skills, ratings, and availability.          </p>
+         <b>Find Talent </b>– Use advanced search filters to hire the best freelancers based on skills and ratings.          </p>
         </div>
         <div className="step">
           <img src="/images/image3.png" alt="Step 2" className="step-logo" />
           <p className="description">
-         <b>Post & Pay Securely </b>– List projects, set milestones, and pay via Bitcoin, cards, or 50+ currencies with escrow protection.
-</p>
+          <b>Secure Payments</b> – Your earnings are protected in escrow and released only when the job’s done. Trust, verified.
+          </p>
         </div>
         <div className="step">
           <img src="/images/image4.png" alt="Step 3" className="step-logo" />
           <p className="description">
-          <b>Work & Earn </b>– Bid on jobs, complete milestones, and withdraw earnings via PayPal, crypto, or bank transfer—hassle-free!          </p>
+          <b>Build Your Reputation</b> – Deliver great work, collect blockchain-backed reviews, and level up your freelance profile with every project!
+          </p>
         </div>
       </div>
       <div className="image-with-button">

@@ -70,7 +70,7 @@ const ContactUs = () => {
   return (
     <div className="about-contact-container">
       <div className="header">
-        <img src='images/image10.png' alt="User" className="" />
+        <img src='images/image50.png' alt="User" className="" />
         <div className="header-right">
           <span onClick={navigateToHome}>Home</span>         
           <span onClick={navigateToProfile}>Profile</span>

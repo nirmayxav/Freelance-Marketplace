@@ -199,7 +199,7 @@ button:active {
   margin-top: 20px; /* Space above the footer */
 }
 .logo {
-  width: 500px; /* Increase the size of the logo */
+  width: 300px; /* Increase the size of the logo */
   height: auto; /* Maintain aspect ratio */
 }/* Image with Button Section */
 .image-with-button {

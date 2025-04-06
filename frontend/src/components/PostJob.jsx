@@ -68,7 +68,7 @@ const PostJob = () => {
   return (
     <div className="post-job-container">
       <div className="header">
-        <img src='images/image10.png' alt="User" />
+        <img src='images/image50.png' alt="User" />
         <div className="header-right">
           <span onClick={navigateToHome}>Home</span>
           <span onClick={navigateToChat}>Chat</span>
