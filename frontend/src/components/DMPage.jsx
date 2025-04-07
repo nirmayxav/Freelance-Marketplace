@@ -204,7 +204,13 @@ const DMPage = () => {
           setSelectedConversation(conv);
         }}
       >
-        <img src={otherUser?.image || '/default-user.png'} alt={otherUser?.username} />
+        <img
+  src={otherUser?.image || '/default-user.png'}
+  alt={otherUser?.username}
+  onClick={() => navigate(`/freelancer-profile/${otherUser?._id}`)}
+  style={{ cursor: 'pointer' }}
+/>
+
         <div className="conversation-info">
           <h3>{otherUser?.username || 'Unknown User'}</h3>
           <p>{conv.lastMessage?.message?.substring(0, 30) || 'No messages'}</p>

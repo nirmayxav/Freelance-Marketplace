@@ -164,6 +164,7 @@ button:active {
 }
 
 .feature-card {
+  
   flex: 1; /* Equal width for all cards */
   padding: 40px;
   border: 2px solid rgba(75, 30, 133, 0.5);
@@ -175,8 +176,10 @@ button:active {
   );
   color: white;
   backdrop-filter: blur(12px);
-  width: 600px;
-  height: 340px;
+  width: 500px;
+  height: 300px;
+  margin-left: 40px;
+  margin-right: 60px;
 }
 
 .feature-card h2 {
@@ -232,7 +235,7 @@ button:active {
 
 .section-image2 {
   width: 40%; /* Adjust image width */
-  height: 60%;
+  height: 50%;
   border-radius: 15px; /* Optional: Add rounded corners */
 }
 

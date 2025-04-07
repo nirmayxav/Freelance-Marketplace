@@ -19,9 +19,9 @@ import { Elements } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import PaymentForm from "./components/PaymentForm";
 import ReviewForm from './components/ReviewForm';
+import FreelancerPage from './components/FreelancerPage'; // Import FreelancerPage
 
 const stripePromise =loadStripe("pk_test_51R8SdlFb6GyXWQWifPnTIKWBpUkCd2XVAXgPPtVswu1M3NjmOIoUoTApFQ2OwfC4ErJ6eUtY6B1PO9fVlvUbFMer00aThejWPy");
-
 
 
 
@@ -62,6 +62,8 @@ const App = () => {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/review" element={<ReviewForm />} />
+          <Route path="/freelancer-profile/:id" element={<FreelancerPage />} />
+
 
         </Routes>
       </div>

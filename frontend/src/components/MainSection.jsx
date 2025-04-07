@@ -29,6 +29,12 @@ const navigate = useNavigate();
      
 
     <div className="how-it-works">
+    <div className="image-with-button">
+        <img src="/images/image5.png" alt="How It Works" className="section-image" />
+      </div>
+      <br></br>
+      <br></br>
+
       <h1 className="title">Here's How It Works</h1>
       <div className="steps">
         <div className="step">
@@ -49,14 +55,14 @@ const navigate = useNavigate();
           </p>
         </div>
       </div>
-      <div className="image-with-button">
-        <img src="/images/image5.png" alt="How It Works" className="section-image" />
-        <button className="action-button">Get Started</button>
-      </div>
+      
     </div>
 
 
-  
+    <br></br>
+    <br></br>
+    <br></br>
+
     <div className="image-with-button">
       <div className="text-content">
         <h2 className="section-header"><b>Find the Best Talent for Your Projects</b></h2>

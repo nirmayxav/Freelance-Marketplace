@@ -23,6 +23,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const upRoutes = require("./routes/upRoutes");
 const walletRoutes = require("./routes/walletRoutes"); // make sure path is correct
+const freelancerRoutes = require('./routes/freelancerRoutes');
 
 
 dotenv.config();
@@ -56,6 +57,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/reviews", reviewRoutes); // ✅ Your blockchain review route
 app.use("/api/rewards", upRoutes);
 app.use("/api/wallets", walletRoutes); // ✅ correct base path
+app.use('/api/freelancers', freelancerRoutes);
 
 const activeUsers = new Map();
 
