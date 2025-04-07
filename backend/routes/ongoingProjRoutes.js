@@ -6,24 +6,41 @@ const protect = require('../middlewares/authMiddleware');
 
 // GET timelines where current user is applicant
 // Endpoint: /api/ongoing-projects/applicant/:id
+// ✅ GET timelines for applicant where status != 'completed'
 router.get('/applicant/:id', protect, async (req, res) => {
   try {
     const applicantId = req.params.id;
-    const timelines = await Timeline.find({ applicant: applicantId })
-      .populate('jobId');
+    const timelines = await Timeline.find({
+      applicant: applicantId,
+      status: { $ne: 'completed' }
+    }).populate('jobId');
     res.json({ success: true, timelines });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// GET timelines where current user is client
-// Endpoint: /api/ongoing-projects/client/:id
+// ✅ GET timelines for client where status != 'completed'
 router.get('/client/:id', protect, async (req, res) => {
   try {
     const clientId = req.params.id;
-    const timelines = await Timeline.find({ client: clientId })
-      .populate('jobId');
+    const timelines = await Timeline.find({
+      client: clientId,
+      status: { $ne: 'completed' }
+    }).populate('jobId');
+    res.json({ success: true, timelines });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.get('/client/completed/:id', protect, async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    const timelines = await Timeline.find({
+      client: clientId,
+      status: 'completed'
+    }).populate('jobId');
     res.json({ success: true, timelines });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

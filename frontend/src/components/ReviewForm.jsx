@@ -1,50 +1,35 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+
 const ReviewForm = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const freelancerId = location.state?.freelancerId;
+  const jobId = location.state?.jobId;
 
   const [freelancerAddress, setFreelancerAddress] = useState("");
   const [comment, setComment] = useState("");
   const [rating, setRating] = useState(5);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [countdown, setCountdown] = useState(7);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchWallet = async () => {
-      console.log("📡 Fetching wallet address for freelancerId:", freelancerId);
-
-      if (!freelancerId) {
-        setError("Missing freelancer ID.");
-        return;
-      }
-
-      try {
-        const res = await fetch(`http://localhost:5001/api/wallet/${freelancerId}`, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        });
-
-        const contentType = res.headers.get("content-type");
-        if (!res.ok) {
-          const text = await res.text();
-          console.error("❌ Wallet fetch failed with HTML:", text);
-          throw new Error(`Status ${res.status} - Not JSON`);
-        }
-
-        if (!contentType.includes("application/json")) {
-          throw new Error("Expected JSON response from backend.");
-        }
+      if (!freelancerId) return setError("Missing freelancer ID.");
+     
+  try {
+    const res = await fetch(`http://localhost:5001/api/wallets/${freelancerId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
 
         const data = await res.json();
-        console.log("✅ Wallet address fetched:", data.walletAddress);
         setFreelancerAddress(data.walletAddress);
       } catch (err) {
-        console.error("❌ Error fetching wallet address:", err);
         setError("Failed to fetch freelancer wallet address.");
       }
     };
@@ -52,17 +37,22 @@ const ReviewForm = () => {
     fetchWallet();
   }, [freelancerId]);
 
+  useEffect(() => {
+    let timer;
+    if (submitted && countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    } else if (countdown === 0) {
+      navigate("/homes");
+    }
+    return () => clearTimeout(timer);
+  }, [submitted, countdown, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!freelancerAddress) {
-      setError("Freelancer has no wallet address linked.");
-      return;
-    }
+    if (!freelancerAddress) return setError("Freelancer has no wallet address linked.");
 
     try {
       setLoading(true);
-      console.log("🚀 Submitting review to blockchain...");
       const res = await fetch("http://localhost:5001/api/reviews/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -71,15 +61,23 @@ const ReviewForm = () => {
 
       const data = await res.json();
       if (data.success) {
-        console.log("✅ Review submitted successfully:", data);
+        // Clean up: delete conversation, chats, update timeline
+        const token = localStorage.getItem("token");
+
+        await fetch(`http://localhost:5001/api/reviews/cleanup/${jobId}`, {
+          method: "DELETE"
+        });
+        
+
+        await fetch(`http://localhost:5001/api/reviews/mark-completed/${jobId}`, {
+          method: "PATCH"
+        });
+
         setSubmitted(true);
         setComment("");
         setRating(5);
-        setTimeout(() => navigate("/homes"), 4500); // ✅ navigate to home page
-
       } else {
-        console.warn("⚠️ Review submission failed:", data);
-        setError(data.message || data.error || "Failed to submit review.");
+        setError(data.message || "Failed to submit review.");
       }
     } catch (err) {
       console.error("❌ Review submission error:", err);
@@ -93,6 +91,7 @@ const ReviewForm = () => {
     return (
       <div className="success-box">
         <p>✅ Review submitted successfully!</p>
+        <p>🔁 Redirecting in {countdown} second{countdown !== 1 ? "s" : ""}...</p>
       </div>
     );
   }

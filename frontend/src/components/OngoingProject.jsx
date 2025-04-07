@@ -9,6 +9,7 @@ const OngoingProject = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const [applicantSubmissions, setApplicantSubmissions] = useState({});
+  const [completedProjects, setCompletedProjects] = useState([]);
 
   const navigateToHome = () => navigate('/homes');
   const navigateToChat = () => navigate('/chat');
@@ -58,11 +59,37 @@ const OngoingProject = () => {
         setError(err.message);
       }
     };
+    const fetchCompletedProjects = async () => {
+      try {
+        const res = await fetch(`http://localhost:5001/api/ongoing-projects/client/completed/${userId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+        const contentType = res.headers.get("content-type");
+        
+        if (!res.ok || !contentType?.includes("application/json")) {
+          const text = await res.text(); // fallback to reading raw text
+          console.warn("⚠️ Raw response was not JSON:", text);
+          throw new Error("Server did not return JSON.");
+        }
+        
+        const data = await res.json();        if (data.success) {
+          setCompletedProjects(data.timelines);
+        } else {
+          setError(data.message || "Error fetching completed projects");
+        }
+      } catch (err) {
+        setError(err.message);
+      }
+    };
+    
 
-    Promise.all([fetchApplicantProjects(), fetchClientProjects()])
-      .then(() => setLoading(false))
-      .catch(() => setLoading(false));
-  }, [userId]);
+    Promise.all([fetchApplicantProjects(), fetchClientProjects(), fetchCompletedProjects()])
+    .then(() => setLoading(false))
+    .catch(() => setLoading(false));
+  }, [userId]);  
 
   const handleApplicantSubmit = async (timelineId) => {
     const submissionText = applicantSubmissions[timelineId];
@@ -228,6 +255,28 @@ const OngoingProject = () => {
           <p>No ongoing project as client.</p>
         )}
       </div>
+      {/* Completed Section */}
+<div className="important-features">
+  <h2>Completed Projects</h2>
+  {completedProjects.length > 0 ? (
+    completedProjects.map((timeline) => (
+      <div key={timeline._id} className="submission-item">
+        <h3>Project: <b>{timeline.jobId?.title || "Untitled Project"}</b></h3>
+        <div className="code-submission">
+          <h4>Final Submission</h4>
+          <textarea
+            readOnly
+            rows={3}
+            value={timeline.applicantSubmission || "No final submission provided."}
+          />
+        </div>
+      </div>
+    ))
+  ) : (
+    <p>No completed projects yet.</p>
+  )}
+</div>
+
     </div>
   );
 };

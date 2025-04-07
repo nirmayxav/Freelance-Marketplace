@@ -143,6 +143,8 @@ const PaymentForm = () => {
         if (result.paymentIntent?.status === "succeeded") {
           await rewardUsers();
           setSuccess(true);
+          console.log("Navigating to review with:", { freelancerId, jobId });
+
           navigate("/review", { state: { jobId, freelancerId } });
         }
       }
@@ -185,7 +187,10 @@ const PaymentForm = () => {
 
         await rewardUsers();
         setSuccess(true);
+        console.log("Navigating to review with:", { freelancerId, jobId });
+
         navigate("/review", { state: { jobId, freelancerId } });
+
       }
     } catch (err) {
       console.error("❌ Payment Error:", err);

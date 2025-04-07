@@ -1,8 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const { reviewContract } = require("../config/ethers");
+// Removed: const authMiddleware = require('../middlewares/authMiddleware');
 
-// POST /api/reviews/add
+const Conversation = require("../models/Conversation");
+const Chat = require("../models/Chat");
+const Timeline = require("../models/Timeline");
+
+// Write review to blockchain
 router.post("/add", async (req, res) => {
   const { freelancerAddress, comment, rating } = req.body;
 
@@ -29,20 +34,16 @@ router.post("/add", async (req, res) => {
   }
 });
 
-// @route   GET /api/reviews/:freelancerAddress
-// @desc    Get all reviews for a freelancer
+// Get all reviews for a freelancer
 router.get("/:freelancerAddress", async (req, res) => {
   const { freelancerAddress } = req.params;
-  console.log("🔍 Fetching reviews for:", freelancerAddress);
 
   try {
     const rawReviews = await reviewContract.getReviews(freelancerAddress);
-    console.log("✅ Raw reviews from contract:", rawReviews);
 
-    // 🔄 Convert BigInt fields to numbers or strings
     const reviews = rawReviews.map((review) => ({
       comment: review.comment,
-      rating: Number(review.rating), // Convert BigInt to Number
+      rating: Number(review.rating),
       reviewer: review.reviewer,
     }));
 
@@ -53,5 +54,27 @@ router.get("/:freelancerAddress", async (req, res) => {
   }
 });
 
+// Delete conversation and chats
+router.delete("/cleanup/:jobId", async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    await Conversation.deleteMany({ jobId });
+    await Chat.deleteMany({ jobId });
+    res.json({ success: true, message: "Conversation and chats deleted." });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Cleanup failed." });
+  }
+});
+
+// Mark timeline as completed
+router.patch("/mark-completed/:jobId", async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    await Timeline.updateMany({ jobId }, { $set: { status: "completed" } });
+    res.json({ success: true, message: "Timeline marked completed." });
+  } catch (err) {
+    res.status(500).json({ success: false, message: "Update failed." });
+  }
+});
 
 module.exports = router;

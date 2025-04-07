@@ -58,6 +58,7 @@ app.use("/api/reviews", reviewRoutes); // ✅ Your blockchain review route
 app.use("/api/rewards", upRoutes);
 app.use("/api/wallets", walletRoutes); // ✅ correct base path
 app.use('/api/freelancers', freelancerRoutes);
+app.use("/api", require("./routes/finalroutes"));
 
 const activeUsers = new Map();
 
