@@ -17,7 +17,7 @@ const navigate = useNavigate();
     <div className="how-it-works">
      <div className="main-hero-section">
      <h1>Welcome to GIGO</h1>
-<p className="subtitle">Freelance at the Speed of Big O</p>
+<p className="subtitle">Freelance at the Speed of Big O!</p>
 <h2>Connect. Collaborate. Conquer Projects with Top Talent.</h2>
 <h3 className="platform-message">
   🚀 Powering seamless hiring between clients and freelancers. <br />

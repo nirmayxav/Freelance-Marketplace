@@ -125,6 +125,8 @@ button:active {
   transition: 0.1s;
 }
 
+
+
 .action-button::after {
   content: '';
   width: 100%;
@@ -868,3 +870,75 @@ footer.reveal a:hover {
   border: none;
   background: transparent;
 }
+
+
+
+/*IDHAR ADD KIYA HAI*/
+.main-hero-section {
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+  padding: 6rem 2rem;
+  margin: 2rem auto;
+  max-width: 1500px;
+  border-radius: 20px;
+  background-image: url("/Users/purva/Downloads/Freelance-Marketplace/frontend/src/assets/images/fiver.jpeg"); /* ✅ Replace with your actual image path */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+}
+
+.main-hero-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5); /* ✅ Dark overlay for contrast */
+  z-index: 1;
+}
+
+.main-hero-section h1,
+.main-hero-section .subtitle,
+.main-hero-section h2,
+.main-hero-section .platform-message {
+  z-index: 2;
+  position: relative;
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeInSlideUp 1s ease-out forwards;
+
+  text-shadow: 0 2px 8px rgba(0, 209, 255, 0.4), 
+               0 0 10px rgba(255, 255, 255, 0.15);
+}
+
+.main-hero-section h1 {
+  font-size: 3rem;
+  animation-delay: 0.3s;
+}
+
+.main-hero-section .subtitle {
+  font-size: 1.5rem;
+  margin: 1rem 0;
+  animation-delay: 0.6s;
+  color: #00d1ff;
+}
+
+.main-hero-section h2 {
+  font-size: 2.2rem;
+  animation-delay: 0.9s;
+}
+
+.main-hero-section .platform-message {
+  font-size: 1.1rem;
+  animation-delay: 1.2s;
+  margin-top: 2rem;
+}
+
+/* Smooth slide-up & fade-in animation */
+@keyframes fadeInSlideUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
